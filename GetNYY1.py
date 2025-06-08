@@ -49,7 +49,7 @@ if response.status_code == 200:
    
     # Extract and filter Yankees games
 
-    yankees_games = [game for league in json_data['sports'][0]['leagues'] for game in league['events'] if 'MIA' in game['shortName']]
+    yankees_games = [game for league in json_data['sports'][0]['leagues'] for game in league['events'] if 'MIL' in game['shortName']]
 
     
  # Save JSON data for Yankees games to a file
@@ -154,8 +154,8 @@ if response.status_code == 200:
 
     
 
-    table = ax.table(cellText=data, colLabels=col_titles, loc='left', cellLoc='center')
-
+    table = ax.table(cellText=data, colLabels=col_titles, loc='left', cellLoc='center', bbox=[0.0, 0.3, 0.6, 0.6])
+    
     # Create the figure and toggle full-screen mode
 
         
@@ -430,7 +430,7 @@ if response.status_code == 200:
 
     # Add title
 
-    plt.title("BASEMENT SCOREBOARD \nYANKEES HYPE", fontsize=72, pad=10, fontweight='bold', color='white', y=.75)
+    plt.title("DISTRICT SCOREBOARD \nYANKEES HYPE", fontsize=72, pad=10, fontweight='bold', color='white', y=.75)
 
 
 
