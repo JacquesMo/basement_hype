@@ -25,7 +25,7 @@ HEADERS = {
 }
 def ensure_output_directory_exists():
     """Ensure the output directory exists."""
-    output_dir = os.path.dirname(SAVE_PATH_JSON)
+    #output_dir = os.path.dirname(SAVE_PATH_JSON)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
         print(f"Created directory: {output_dir}")
@@ -255,6 +255,7 @@ def update_and_redraw_plot(fig):
 
 # --- Main Execution ---
 if __name__ == "__main__":
+    ensure_output_directory_exists
     plt.ion() # Turn on interactive mode
     fig = plt.figure(figsize=(16, 9))
     fig.patch.set_facecolor('#333333')
