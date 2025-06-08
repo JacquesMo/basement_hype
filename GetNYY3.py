@@ -255,7 +255,7 @@ def update_and_redraw_plot(fig):
 
 # --- Main Execution ---
 if __name__ == "__main__":
-    ensure_output_directory_exists
+    ensure_output_directory_exists()
     plt.ion() # Turn on interactive mode
     fig = plt.figure(figsize=(16, 9))
     fig.patch.set_facecolor('#333333')
