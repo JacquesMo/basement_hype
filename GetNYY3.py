@@ -12,14 +12,23 @@ TEAM_ABBREVIATION = 'NYM'
 UPDATE_INTERVAL_SECONDS = 10
 
 # --- Define the filename for the saved JSON file ---
-SAVE_PATH_JSON = "output/scoreboard_data.json"
-SAVE_PATH_PNG = "output/scoreboard.png"
+# SAVE_PATH_JSON = "output/scoreboard_data.json"
+# SAVE_PATH_PNG = "output/scoreboard.png"
+output_dir = "output"
+SAVE_PATH_JSON = f"{output_dir}/scoreboard_data.json"
+SAVE_PATH_PNG = f"{output_dir}/scoreboard.png"
 
 # --- ESPN API Endpoint (Updated to a more stable endpoint) ---
 API_URL = "http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
 }
+def ensure_output_directory_exists():
+    """Ensure the output directory exists."""
+    output_dir = os.path.dirname(SAVE_PATH_JSON)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        print(f"Created directory: {output_dir}")
 
 def fetch_and_find_game():
     """
