@@ -12,8 +12,8 @@ TEAM_ABBREVIATION = 'NYM'
 UPDATE_INTERVAL_SECONDS = 10
 
 # --- Define the filename for the saved JSON file ---
-SAVE_PATH_JSON = "scoreboard_data.json"
-SAVE_PATH_PNG = "scoreboard.png"
+SAVE_PATH_JSON = "output/scoreboard_data.json"
+SAVE_PATH_PNG = "output/scoreboard.png"
 
 # --- ESPN API Endpoint (Updated to a more stable endpoint) ---
 API_URL = "http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
