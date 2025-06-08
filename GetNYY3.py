@@ -64,7 +64,7 @@ def update_and_redraw_plot(fig):
     ax.axis('off')
     
     # Adjust the top of the subplot to move all content down
-    plt.subplots_adjust(top=0.85)
+    plt.subplots_adjust(top=0.75)
     
     game = fetch_and_find_game()
 
