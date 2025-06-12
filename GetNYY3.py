@@ -12,8 +12,6 @@ TEAM_ABBREVIATION = 'NYY'
 UPDATE_INTERVAL_SECONDS = 10
 
 # --- Define the filename for the saved JSON file ---
-# SAVE_PATH_JSON = "output/scoreboard_data.json"
-# SAVE_PATH_PNG = "output/scoreboard.png"
 output_dir = "output"
 SAVE_PATH_JSON = f"{output_dir}/scoreboard_data.json"
 SAVE_PATH_PNG = f"{output_dir}/scoreboard.png"
@@ -25,7 +23,6 @@ HEADERS = {
 }
 def ensure_output_directory_exists():
     """Ensure the output directory exists."""
-    #output_dir = os.path.dirname(SAVE_PATH_JSON)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
         print(f"Created directory: {output_dir}")
@@ -73,7 +70,7 @@ def update_and_redraw_plot(fig):
     ax.axis('off')
     
     # Adjust the top of the subplot to move all content down
-    plt.subplots_adjust(top=0.75)
+    plt.subplots_adjust(top=0.78)
     
     game = fetch_and_find_game()
 
@@ -84,7 +81,7 @@ def update_and_redraw_plot(fig):
     )
 
     if not game:
-        title.set_text(f"No Game Today for {TEAM_ABBREVIATION}\n(Or Error Fetching Data)")
+        title.set_text(f"No Game Today for {TEAM_ABBREVIATION}\nAnd The Mets Still Suck")
         return
 
     status = game.get('status', {})
@@ -109,7 +106,7 @@ def update_and_redraw_plot(fig):
         # --- PRE-GAME DISPLAY ---
         main_table = ax.table(
             cellText=[[away_team, ''], [home_team, '']],
-            colLabels=["Team", "Status"], colWidths=[0.3, 0.4],
+            colLabels=["Team", "Status"], colWidths=[0.5, 0.5],
             loc='center', cellLoc='center', bbox=[0.25, 0.55, 0.5, 0.2]
         )
         time_part = ""
@@ -140,35 +137,42 @@ def update_and_redraw_plot(fig):
         linescore_table = ax.table(
             cellText=[[''] * 13] * 2,
             colLabels=['', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'R', 'H', 'E'],
-            colWidths=[0.1] + [0.05] * 12, loc='center', cellLoc='center',
-            bbox=[0.1, 0.7, 0.8, 0.2]
+            colWidths=[0.2] + [0.05] * 12, loc='center', cellLoc='center',
+            bbox=[0.05, 0.65, 0.9, 0.35]
         )
         linescore_table.auto_set_font_size(False)
         linescore_table.set_fontsize(30)
+        
+        # Set a base lighter grey background for the entire linescore table
+        lighter_grey_bg = '#444444'
         for key, cell in linescore_table.get_celld().items():
+            cell.set_facecolor(lighter_grey_bg)
             cell.set_text_props(weight='bold', color='white')
-            cell.set_facecolor('none')
             cell.set_edgecolor('none')
+            
+        # Re-apply specific styles for headers and R,H,E columns
         for i in range(13):
             linescore_table.get_celld()[(0, i)].set_text_props(color='#AAAAAA')
-        light_grey = '#4A4A4A'
+        
+        rhe_grey = '#5A5A5A'
         for row_idx in range(3):
             for col_idx in range(10, 13):
-                linescore_table.get_celld()[(row_idx, col_idx)].set_facecolor(light_grey)
+                linescore_table.get_celld()[(row_idx, col_idx)].set_facecolor(rhe_grey)
         
         # Populate Linescore
         away_linescores = away_comp.get('linescores', [])
         home_linescores = home_comp.get('linescores', [])
         linescore_table.get_celld()[(1, 0)].get_text().set_text(away_team)
-        linescore_table.get_celld()[(1, 0)].set_facecolor(away_color)
+        linescore_table.get_celld()[(1, 0)].set_facecolor(away_color) # Override grey with team color
         linescore_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
         for i, score in enumerate(away_linescores):
             if i < 9: linescore_table.get_celld()[(1, i + 1)].get_text().set_text(str(int(score.get('value', 0))))
         linescore_table.get_celld()[(1, 10)].get_text().set_text(str(away_comp.get('score', '')))
         linescore_table.get_celld()[(1, 11)].get_text().set_text(str(away_comp.get('hits', '')))
         linescore_table.get_celld()[(1, 12)].get_text().set_text(str(away_comp.get('errors', '')))
+        
         linescore_table.get_celld()[(2, 0)].get_text().set_text(home_team)
-        linescore_table.get_celld()[(2, 0)].set_facecolor(home_color)
+        linescore_table.get_celld()[(2, 0)].set_facecolor(home_color) # Override grey with team color
         linescore_table.get_celld()[(2, 0)].get_text().set_color(home_alt_color)
         for i, score in enumerate(home_linescores):
             if i < 9: linescore_table.get_celld()[(2, i + 1)].get_text().set_text(str(int(score.get('value', 0))))
@@ -177,13 +181,13 @@ def update_and_redraw_plot(fig):
         linescore_table.get_celld()[(2, 12)].get_text().set_text(str(home_comp.get('errors', '')))
 
         if status_name == 'STATUS_IN_PROGRESS':
-            # --- Draw Live Game Tables ---
+            # --- Draw Live Game Tables (Moved Lower) ---
             pitcher_batter_table = ax.table(
                 cellText=[['', '']], colLabels=["Pitching", "At Bat"],
-                colWidths=[0.3, 0.3], loc='center', cellLoc='center', bbox=[0.25, 0.55, 0.5, 0.15]
+                colWidths=[0.3, 0.3], loc='center', cellLoc='center', bbox=[0.25, 0.4, 0.5, 0.15]
             )
             live_table = ax.table(
-                cellText=[['']], loc='center', cellLoc='center', bbox=[0.15, 0.45, 0.7, 0.1]
+                cellText=[['']], loc='center', cellLoc='center', bbox=[0.15, 0.25, 0.7, 0.1]
             )
             for table in [pitcher_batter_table, live_table]:
                 table.auto_set_font_size(False)
@@ -223,11 +227,11 @@ def update_and_redraw_plot(fig):
             count = f"{sit.get('balls', 0)}-{sit.get('strikes', 0)} Count"
             live_table.get_celld()[(0, 0)].get_text().set_text(f"Bases: {bases}   |   {outs_text}   |   {count}")
         else:
-             # --- Draw Post-Game Table ---
+             # --- Draw Post-Game Table (Moved Lower) ---
              post_game_table = ax.table(
                 cellText=[[away_team, ''], [home_team, status_detail]],
                 colLabels=["Team", "Status"], colWidths=[0.3, 0.4],
-                loc='center', cellLoc='center', bbox=[0.25, 0.5, 0.5, 0.2]
+                loc='center', cellLoc='center', bbox=[0.25, 0.48, 0.5, 0.2]
              )
              post_game_table.auto_set_font_size(False)
              post_game_table.set_fontsize(24)
