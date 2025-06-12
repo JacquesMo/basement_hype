@@ -8,7 +8,7 @@ from datetime import datetime
 
 # --- Configuration ---
 # You can set this to 'PHI', 'NYY', or any other MLB team abbreviation.
-TEAM_ABBREVIATION = 'NYM'
+TEAM_ABBREVIATION = 'NYY'
 UPDATE_INTERVAL_SECONDS = 10
 
 # --- Define the filename for the saved JSON file ---
