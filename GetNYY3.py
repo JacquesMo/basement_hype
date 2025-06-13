@@ -32,8 +32,8 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
 }
 
-mpl.rcParams['font.family'] = "sans-serif"
-mpl.rcParams['font.sans-serif'] = "Georgia"
+#mpl.rcParams['font.family'] = "sans-serif"
+#mpl.rcParams['font.sans-serif'] = "Georgia"
 
 def ensure_output_directory_exists():
     """Ensure the output directory exists."""
@@ -91,7 +91,8 @@ def update_and_redraw_plot(fig):
     # --- Set the main title ---
     title = ax.set_title(
         f"DC SCOREBOARD\n{TEAM_ABBREVIATION} HYPE",
-        fontsize=50, pad=40, fontweight='bold', color='white', fontname='Georgia'
+        fontsize=50, pad=40, fontweight='bold', color='white', 
+        #fontname='Georgia'
     )
 
     if not game:
