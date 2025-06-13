@@ -1,7 +1,7 @@
 from matplotlib.font_manager import FontProperties
 import matplotlib.pyplot as plt
 
-georgia_font = FontProperties(fname='/usr/share/fonts/truetype/msttcorefonts/georgia.tff') # Replace with the actual path
+georgia_font = FontProperties(fname='/usr/share/fonts/truetype/msttcorefonts/Georgia.tff') # Replace with the actual path
 
 x = [1, 2, 3]
 y = [4, 5, 6]
