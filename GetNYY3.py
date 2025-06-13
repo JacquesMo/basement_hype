@@ -34,6 +34,7 @@ HEADERS = {
 
 mpl.rcParams['font.family'] = "sans-serif"
 mpl.rcParams['font.sans-serif'] = "Georgia"
+
 def ensure_output_directory_exists():
     """Ensure the output directory exists."""
     if not os.path.exists(output_dir):
