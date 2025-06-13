@@ -85,7 +85,7 @@ def update_and_redraw_plot(fig):
     # --- Set the main title ---
     title = ax.set_title(
         f"DC SCOREBOARD\n{TEAM_ABBREVIATION} HYPE",
-        fontsize=50, pad=40, fontweight='bold', color='white', fontname='Times New Roman'
+        fontsize=50, pad=40, fontweight='bold', color='white', fontname='Georgia'
     )
 
     if not game:
@@ -141,8 +141,8 @@ def update_and_redraw_plot(fig):
 
         main_table = ax.table(
             cellText=[[away_team, '', away_odds_str], [home_team, '', home_odds_str]],
-            colLabels=["Team", "Status", "Odds"], colWidths=[0.4, 0.3, 0.3],
-            loc='center', cellLoc='center', bbox=[0.2, 0.65, 0.6, 0.2]
+            colLabels=["Team", "Status", "Odds"], colWidths=[0.3, 0.4, 0.3],
+            loc='center', cellLoc='center', bbox=[0.2, 0.65, 0.6, 0.4]
         )
         time_part = ""
         if ' - ' in status_detail:
@@ -154,13 +154,19 @@ def update_and_redraw_plot(fig):
         
         # Style the pre-game table
         main_table.auto_set_font_size(False)
-        main_table.set_fontsize(24)
+        main_table.set_fontsize(32)
         for key, cell in main_table.get_celld().items():
             cell.set_text_props(weight='bold', color='white')
             cell.set_facecolor('none')
             cell.set_edgecolor('none')
         for i in range(3):
             main_table.get_celld()[(0, i)].set_text_props(color='#AAAAAA')
+        for key, cell in main_table.get_celld().items():
+                cell.set_text_props(weight='bold', color='white')
+                cell.set_facecolor('#444444')
+                cell.set_edgecolor('none')
+        for i in range(3):
+            main_table.get_celld()[(0, i)].set_facecolor('none')
         main_table.get_celld()[(1, 0)].set_facecolor(away_color)
         main_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
         main_table.get_celld()[(2, 0)].set_facecolor(home_color)
@@ -177,7 +183,7 @@ def update_and_redraw_plot(fig):
         pitcher_table = ax.table(
             cellText=[[away_pitcher_name, home_pitcher_name], [away_pitcher_stats, home_pitcher_stats]],
             colLabels=["Away Starter", "Home Starter"], colWidths=[0.5, 0.5],
-            loc='center', cellLoc='center', bbox=[0.2, 0.45, 0.6, 0.2]
+            loc='center', cellLoc='center', bbox=[0.25, 0.375, 0.5, 0.25]
         )
         pitcher_table.auto_set_font_size(False)
         pitcher_table.set_fontsize(18)
@@ -372,7 +378,7 @@ if __name__ == "__main__":
     ensure_output_directory_exists()
     plt.ion()
     fig = plt.figure(figsize=(16, 9))
-    fig.patch.set_facecolor('#021e4d')
+    fig.patch.set_facecolor('#666666')
     fig.canvas.mpl_connect('close_event', lambda event: sys.exit(0))
 
     mng = plt.get_current_fig_manager()
