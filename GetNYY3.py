@@ -9,7 +9,7 @@ from datetime import datetime
 # --- Configuration ---
 # You can set this to 'PHI', 'NYY', or any other MLB team abbreviation.
 TEAM_ABBREVIATION = 'NYY'
-UPDATE_INTERVAL_SECONDS = 10
+UPDATE_INTERVAL_SECONDS = 10 
 
 # --- Define the filename for the saved JSON file ---
 output_dir = "output"
@@ -95,6 +95,10 @@ def update_and_redraw_plot(fig):
     away_team = away_comp.get('team', {}).get('abbreviation', 'N/A')
     home_team = home_comp.get('team', {}).get('abbreviation', 'N/A')
     
+    # Get team IDs for coloring logic
+    away_team_id = away_comp.get('id')
+    home_team_id = home_comp.get('id')
+    
     # Get team colors
     away_color = f"#{away_comp.get('team', {}).get('color', 'FFFFFF')}"
     away_alt_color = f"#{away_comp.get('team', {}).get('alternateColor', '000000')}"
@@ -104,10 +108,33 @@ def update_and_redraw_plot(fig):
     # --- Draw tables based on game status ---
     if status_name == 'STATUS_SCHEDULED':
         # --- PRE-GAME DISPLAY ---
+        
+        # --- Odds Extraction for Pre-Game ---
+        away_odds, home_odds = 'N/A', 'N/A'
+        odds_container = game.get('odds')
+        if isinstance(odds_container, list) and odds_container:
+            odds_data = odds_container[0]
+            away_odds = odds_data.get('details', 'N/A')
+            home_odds = odds_data.get('overUnder', 'N/A')
+
+            if (away_odds == 'N/A' or home_odds == 'N/A') and 'details' in odds_data:
+                details_str = odds_data['details']
+                parts = details_str.split(' ')
+                if len(parts) == 2:
+                    team_abbr_from_details, odds_val_from_details = parts
+                    if team_abbr_from_details == away_team: away_odds = odds_val_from_details
+                    elif team_abbr_from_details == home_team: home_odds = odds_val_from_details
+
+        if str(away_odds).upper() == 'EVEN': away_odds = 100
+        if str(home_odds).upper() == 'EVEN': home_odds = 100
+
+        away_odds_str = f"+{away_odds}" if isinstance(away_odds, (int, float)) and away_odds > 0 else str(away_odds)
+        home_odds_str = f"+{home_odds}" if isinstance(home_odds, (int, float)) and home_odds > 0 else str(home_odds)
+
         main_table = ax.table(
-            cellText=[[away_team, ''], [home_team, '']],
-            colLabels=["Team", "Status"], colWidths=[0.5, 0.5],
-            loc='center', cellLoc='center', bbox=[0.25, 0.55, 0.5, 0.2]
+            cellText=[[away_team, '', away_odds_str], [home_team, '', home_odds_str]],
+            colLabels=["Team", "Status", "Odds"], colWidths=[0.4, 0.3, 0.3],
+            loc='center', cellLoc='center', bbox=[0.2, 0.65, 0.6, 0.2]
         )
         time_part = ""
         if ' - ' in status_detail:
@@ -124,12 +151,37 @@ def update_and_redraw_plot(fig):
             cell.set_text_props(weight='bold', color='white')
             cell.set_facecolor('none')
             cell.set_edgecolor('none')
-        main_table.get_celld()[(0, 0)].set_text_props(color='#AAAAAA')
-        main_table.get_celld()[(0, 1)].set_text_props(color='#AAAAAA')
+        for i in range(3):
+            main_table.get_celld()[(0, i)].set_text_props(color='#AAAAAA')
         main_table.get_celld()[(1, 0)].set_facecolor(away_color)
         main_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
         main_table.get_celld()[(2, 0)].set_facecolor(home_color)
         main_table.get_celld()[(2, 0)].get_text().set_color(home_alt_color)
+        
+        # --- Starting Pitchers Table ---
+        away_pitcher_name = away_comp.get('probables', [{}])[0].get('athlete', {}).get('displayName', 'N/A')
+        away_pitcher_stats = away_comp.get('probables', [{}])[0].get('summary', '')
+        home_pitcher_name = home_comp.get('probables', [{}])[0].get('athlete', {}).get('displayName', 'N/A')
+        home_pitcher_stats = home_comp.get('probables', [{}])[0].get('summary', '')
+        
+        pitcher_table = ax.table(
+            cellText=[[away_pitcher_name, home_pitcher_name], [away_pitcher_stats, home_pitcher_stats]],
+            colLabels=["Away Starter", "Home Starter"], colWidths=[0.5, 0.5],
+            loc='center', cellLoc='center', bbox=[0.2, 0.45, 0.6, 0.2]
+        )
+        pitcher_table.auto_set_font_size(False)
+        pitcher_table.set_fontsize(18)
+        for key, cell in pitcher_table.get_celld().items():
+            cell.set_text_props(weight='bold', color='white')
+            cell.set_facecolor('none')
+            cell.set_edgecolor('none')
+        pitcher_table.get_celld()[(0, 0)].set_text_props(color='#AAAAAA')
+        pitcher_table.get_celld()[(0, 1)].set_text_props(color='#AAAAAA')
+        pitcher_table.get_celld()[(1, 0)].set_facecolor(away_color)
+        pitcher_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
+        pitcher_table.get_celld()[(1, 1)].set_facecolor(home_color)
+        pitcher_table.get_celld()[(1, 1)].get_text().set_color(home_alt_color)
+
 
     else:
         # --- LIVE OR POST-GAME DISPLAY ---
@@ -138,19 +190,17 @@ def update_and_redraw_plot(fig):
             cellText=[[''] * 13] * 2,
             colLabels=['', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'R', 'H', 'E'],
             colWidths=[0.2] + [0.05] * 12, loc='center', cellLoc='center',
-            bbox=[0.05, 0.65, 0.9, 0.35]
+            bbox=[0.1, 0.6, 0.8, 0.25]
         )
         linescore_table.auto_set_font_size(False)
         linescore_table.set_fontsize(30)
         
-        # Set a base lighter grey background for the entire linescore table
         lighter_grey_bg = '#444444'
         for key, cell in linescore_table.get_celld().items():
             cell.set_facecolor(lighter_grey_bg)
             cell.set_text_props(weight='bold', color='white')
             cell.set_edgecolor('none')
             
-        # Re-apply specific styles for headers and R,H,E columns
         for i in range(13):
             linescore_table.get_celld()[(0, i)].set_text_props(color='#AAAAAA')
         
@@ -159,11 +209,10 @@ def update_and_redraw_plot(fig):
             for col_idx in range(10, 13):
                 linescore_table.get_celld()[(row_idx, col_idx)].set_facecolor(rhe_grey)
         
-        # Populate Linescore
         away_linescores = away_comp.get('linescores', [])
         home_linescores = home_comp.get('linescores', [])
         linescore_table.get_celld()[(1, 0)].get_text().set_text(away_team)
-        linescore_table.get_celld()[(1, 0)].set_facecolor(away_color) # Override grey with team color
+        linescore_table.get_celld()[(1, 0)].set_facecolor(away_color)
         linescore_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
         for i, score in enumerate(away_linescores):
             if i < 9: linescore_table.get_celld()[(1, i + 1)].get_text().set_text(str(int(score.get('value', 0))))
@@ -172,7 +221,7 @@ def update_and_redraw_plot(fig):
         linescore_table.get_celld()[(1, 12)].get_text().set_text(str(away_comp.get('errors', '')))
         
         linescore_table.get_celld()[(2, 0)].get_text().set_text(home_team)
-        linescore_table.get_celld()[(2, 0)].set_facecolor(home_color) # Override grey with team color
+        linescore_table.get_celld()[(2, 0)].set_facecolor(home_color)
         linescore_table.get_celld()[(2, 0)].get_text().set_color(home_alt_color)
         for i, score in enumerate(home_linescores):
             if i < 9: linescore_table.get_celld()[(2, i + 1)].get_text().set_text(str(int(score.get('value', 0))))
@@ -181,7 +230,6 @@ def update_and_redraw_plot(fig):
         linescore_table.get_celld()[(2, 12)].get_text().set_text(str(home_comp.get('errors', '')))
 
         if status_name == 'STATUS_IN_PROGRESS':
-            # --- Draw Live Game Tables (Moved Lower) ---
             pitcher_batter_table = ax.table(
                 cellText=[['', '']], colLabels=["Pitching", "At Bat"],
                 colWidths=[0.3, 0.3], loc='center', cellLoc='center', bbox=[0.25, 0.4, 0.5, 0.15]
@@ -189,24 +237,58 @@ def update_and_redraw_plot(fig):
             live_table = ax.table(
                 cellText=[['']], loc='center', cellLoc='center', bbox=[0.15, 0.25, 0.7, 0.1]
             )
-            for table in [pitcher_batter_table, live_table]:
-                table.auto_set_font_size(False)
-                table.set_fontsize(24)
-                for key, cell in table.get_celld().items():
-                    cell.set_text_props(weight='bold', color='white')
-                    cell.set_facecolor('none')
-                    cell.set_edgecolor('none')
+            
+            # Style the pitcher/batter table
+            pitcher_batter_table.auto_set_font_size(False)
+            pitcher_batter_table.set_fontsize(24)
+            matchup_table_bg = '#555555' # Lighter grey background
+            for key, cell in pitcher_batter_table.get_celld().items():
+                cell.set_text_props(weight='bold', color='white')
+                cell.set_facecolor(matchup_table_bg)
+                cell.set_edgecolor('none')
+            
+            # Style the live table (transparent)
+            live_table.auto_set_font_size(False)
+            live_table.set_fontsize(24)
+            for key, cell in live_table.get_celld().items():
+                cell.set_text_props(weight='bold', color='white')
+                cell.set_facecolor('none')
+                cell.set_edgecolor('none')
+
+            # Style headers for matchup table
             pitcher_batter_table.get_celld()[(0, 0)].set_text_props(color='#AAAAAA')
             pitcher_batter_table.get_celld()[(0, 1)].set_text_props(color='#AAAAAA')
             
-            # Populate Live Tables
             sit = game.get('situation', {})
-            pitcher_batter_table.get_celld()[(1, 0)].get_text().set_text(sit.get('pitcher', {}).get('athlete', {}).get('displayName', 'N/A'))
-            pitcher_batter_table.get_celld()[(1, 1)].get_text().set_text(sit.get('batter', {}).get('athlete', {}).get('displayName', 'N/A'))
+            
+            # Populate Live Tables
+            pitcher_data = sit.get('pitcher', {}).get('athlete', {})
+            batter_data = sit.get('batter', {}).get('athlete', {})
+            pitcher_batter_table.get_celld()[(1, 0)].get_text().set_text(pitcher_data.get('displayName', 'N/A'))
+            pitcher_batter_table.get_celld()[(1, 1)].get_text().set_text(batter_data.get('displayName', 'N/A'))
+            
+            # --- Dynamic Coloring for Pitcher/Batter Table ---
+            pitcher_team_id = pitcher_data.get('team', {}).get('id')
+            batter_team_id = batter_data.get('team', {}).get('id')
+
+            if pitcher_team_id == home_team_id:
+                pitcher_batter_table.get_celld()[(1, 0)].set_facecolor(home_color)
+                pitcher_batter_table.get_celld()[(1, 0)].get_text().set_color(home_alt_color)
+            else:
+                pitcher_batter_table.get_celld()[(1, 0)].set_facecolor(away_color)
+                pitcher_batter_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
+            
+            if batter_team_id == home_team_id:
+                pitcher_batter_table.get_celld()[(1, 1)].set_facecolor(home_color)
+                pitcher_batter_table.get_celld()[(1, 1)].get_text().set_color(home_alt_color)
+            else:
+                pitcher_batter_table.get_celld()[(1, 1)].set_facecolor(away_color)
+                pitcher_batter_table.get_celld()[(1, 1)].get_text().set_color(away_alt_color)
+
+
             outs_count = sit.get('outs', 0)
             outs_text = "1 Out" if outs_count == 1 else f"{outs_count} Outs"
             
-            # New logic to build the bases string
             runners_on_base = []
             if sit.get('onFirst'):
                 runners_on_base.append("1st")
@@ -227,7 +309,6 @@ def update_and_redraw_plot(fig):
             count = f"{sit.get('balls', 0)}-{sit.get('strikes', 0)} Count"
             live_table.get_celld()[(0, 0)].get_text().set_text(f"Bases: {bases}   |   {outs_text}   |   {count}")
         else:
-             # --- Draw Post-Game Table (Moved Lower) ---
              post_game_table = ax.table(
                 cellText=[[away_team, ''], [home_team, status_detail]],
                 colLabels=["Team", "Status"], colWidths=[0.3, 0.4],
@@ -246,26 +327,21 @@ def update_and_redraw_plot(fig):
              post_game_table.get_celld()[(2, 0)].set_facecolor(home_color)
              post_game_table.get_celld()[(2, 0)].get_text().set_color(home_alt_color)
 
-    # --- Add "Last Updated" timestamp ---
     update_time = datetime.now().strftime('%H:%M:%S')
     ax.text(0.99, 0.01, f'Last Updated: {update_time}',
             transform=ax.transAxes, fontsize=12, color='gray',
             horizontalalignment='right')
     
-    # Save the figure to a PNG file
     fig.savefig(SAVE_PATH_PNG, facecolor=fig.get_facecolor(), edgecolor='none')
     print(f"Scoreboard image saved to {SAVE_PATH_PNG}")
 
-
-# --- Main Execution ---
 if __name__ == "__main__":
     ensure_output_directory_exists()
-    plt.ion() # Turn on interactive mode
+    plt.ion()
     fig = plt.figure(figsize=(16, 9))
     fig.patch.set_facecolor('#333333')
-    fig.canvas.mpl_connect('close_event', lambda event: sys.exit(0)) # Handle window close
+    fig.canvas.mpl_connect('close_event', lambda event: sys.exit(0))
 
-    # Set up initial maximized window
     mng = plt.get_current_fig_manager()
     try: mng.window.showMaximized()
     except AttributeError:
@@ -273,10 +349,14 @@ if __name__ == "__main__":
         except AttributeError: print("Warning: Could not automatically maximize or full-screen the window.")
     
     while True:
+        now = datetime.now()
+        if now.hour == 20 and now.minute >= 45:
+            print(f"Shutdown time reached ({now.strftime('%H:%M')}). Exiting script.")
+            sys.exit(0)
+
         try:
             update_and_redraw_plot(fig)
             plt.pause(UPDATE_INTERVAL_SECONDS)
         except Exception as e:
-            # This handles errors during the update or if the window is closed
             print(f"An error occurred in the main loop: {e}")
             break

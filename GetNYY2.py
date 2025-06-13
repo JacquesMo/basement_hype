@@ -1,485 +1,362 @@
-import matplotlib
-
 import requests
-
+import time
+import matplotlib.pyplot as plt
+import sys
+import json
+import os
 from datetime import datetime
 
-import matplotlib.image as mpimg
+# --- Configuration ---
+# You can set this to 'PHI', 'NYY', or any other MLB team abbreviation.
+TEAM_ABBREVIATION = 'HOU'
+UPDATE_INTERVAL_SECONDS = 10 
 
-import matplotlib.pyplot as plt
+# --- Define the filename for the saved JSON file ---
+output_dir = "output"
+SAVE_PATH_JSON = f"{output_dir}/scoreboard_data.json"
+SAVE_PATH_PNG = f"{output_dir}/scoreboard.png"
 
-import os
-
-import json
-
-import matplotlib.font_manager as fm
-
-from tabulate import tabulate
-
-import numpy as np
-
-import json
-
-
-
-
-
-url = "https://site.web.api.espn.com/apis/v2/scoreboard/header?sport=baseball&league=mlb&region=us&lang=en&contentorigin=espn&buyWindow=1m&showAirings=buy%2Clive%2Creplay&showZipLookup=true&tz=America%2FNew_York"
-
-
-
-headers = {
-
+# --- ESPN API Endpoint (Updated to a more stable endpoint) ---
+API_URL = "http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
+HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
-
 }
+def ensure_output_directory_exists():
+    """Ensure the output directory exists."""
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        print(f"Created directory: {output_dir}")
 
+def fetch_and_find_game():
+    """
+    Fetches data from the API, saves the raw JSON to a file, 
+    and finds the game for the configured team.
+    """
+    try:
+        response = requests.get(API_URL, headers=HEADERS, timeout=10)
+        # This will raise an HTTPError for bad responses (4xx or 5xx)
+        response.raise_for_status()
+        json_data = response.json()
+        
+        # Save the JSON to the same directory as the script
+        with open(SAVE_PATH_JSON, "w") as f:
+            json.dump(json_data, f, indent=4)
+        print(f"Successfully saved latest data to {SAVE_PATH_JSON}")
 
+        # Search through the data for the specified team's game
+        for event in json_data.get('events', []):
+            # This is a robust way to find the game by checking team abbreviations directly.
+            if any(TEAM_ABBREVIATION == comp.get('team', {}).get('abbreviation') for comp in event.get('competitions', [{}])[0].get('competitors', [])):
+                # The game details are inside the first competition
+                return event.get('competitions', [{}])[0]
+                        
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP Error: Could not fetch data. Status code: {e.response.status_code}")
+    except requests.exceptions.RequestException as e:
+        # This catches other network-related errors (e.g., timeout, no internet)
+        print(f"A network error occurred: {e}")
+    except Exception as e:
+        # This catches other potential errors (e.g., JSON decoding, file permissions)
+        print(f"An unexpected error occurred in fetch_and_find_game: {e}")
+        
+    return None
 
-response = requests.get(url, headers=headers)
-
-
-
-if response.status_code == 200:
-
-    # Parse JSON response
-
-    json_data = response.json()
-
-   
-    # Extract and filter Yankees games
-
-    yankees_games = [game for league in json_data['sports'][0]['leagues'] for game in league['events'] if 'MIA' in game['shortName']]
-
+def update_and_redraw_plot(fig):
+    """Fetches new data and completely redraws the plot."""
     
- # Save JSON data for Yankees games to a file
-    with open("Yankees_Games.json", "w") as file:
-        json.dump(json_data, file, indent=4)
+    # Clear the entire figure to ensure a fresh draw
+    plt.clf()
+    ax = fig.add_subplot(111) # Add a new axes object
+    ax.axis('off')
     
-    print("JSON data for Yankees games saved to Yankees_Games.json")
-          
-    fig, ax = plt.subplots(figsize=(10, 6))  # 1920x1200 pixels
-
-
-
-    # Create a table
-
-    ax.axis('off')  # Hide axes
-
-
-
-    # Column titles
-
+    # Adjust the top of the subplot to move all content down
+    plt.subplots_adjust(top=0.78)
     
+    game = fetch_and_find_game()
 
-    # Data rows
+    # --- Set the main title ---
+    title = ax.set_title(
+        f"DISTRICT SCOREBOARD\n",
+        fontsize=40, pad=40, fontweight='bold', color='white'
+    )
 
-    data = []
+    if not game:
+        title.set_text(f"No Game Today for {TEAM_ABBREVIATION}\nAnd The Mets Still Suck")
+        return
 
-    for game in yankees_games:
+    status = game.get('status', {})
+    status_type = status.get('type', {})
+    status_name = status_type.get('name')
+    status_detail = status_type.get('shortDetail', 'TBD')
 
-        away_team = game['odds']['awayTeamOdds']['team']['abbreviation']
+    competitors = game.get('competitors', [])
+    away_comp = next((c for c in competitors if c.get('homeAway') == 'away'), {})
+    home_comp = next((c for c in competitors if c.get('homeAway') == 'home'), {})
+    away_team = away_comp.get('team', {}).get('abbreviatin', 'IRAN')
+    home_team = home_comp.get('team', {}).get('abbrviation', 'ISRAEL')
+    
+    # Get team IDs for coloring logic
+    away_team_id = away_comp.get('id')
+    home_team_id = home_comp.get('id')
+    
+    # Get team colors
+    away_color = f"#{away_comp.get('team', {}).get('cor', 'eb0707')}"
+    away_alt_color = f"#{away_comp.get('team', {}).get('alterteColor', '1c9900')}"
+    home_color = f"#{home_comp.get('team', {}).get('cor', '4287f5')}"
+    home_alt_color = f"#{home_comp.get('team', {}).get('alternateCor', 'FFFFFF')}"
 
-        home_team = game['odds']['homeTeamOdds']['team']['abbreviation']
-
-        away_score = next((comp['score'] for comp in game['competitors'] if comp['homeAway'] == "away"), "")
-
-        home_score = next((comp['score'] for comp in game['competitors'] if comp['homeAway'] == "home"), "")
-
-        #print(home_score)
-
+    # --- Draw tables based on game status ---
+    if status_name == 'STATUS_SCHEDULED':
+        # --- PRE-GAME DISPLAY ---
         
+        # --- Odds Extraction for Pre-Game ---
+        away_odds, home_odds = 'N/A', 'N/A'
+        odds_container = game.get('odds')
+        if isinstance(odds_container, list) and odds_container:
+            odds_data = odds_container[0]
+            away_odds = odds_data.get('details', 'N/A')
+            home_odds = odds_data.get('overUnder', 'N/A')
 
-        away_moneyline_data = game['odds']['moneyline']['away']
+            if (away_odds == 'N/A' or home_odds == 'N/A') and 'details' in odds_data:
+                details_str = odds_data['details']
+                parts = details_str.split(' ')
+                if len(parts) == 2:
+                    team_abbr_from_details, odds_val_from_details = parts
+                    if team_abbr_from_details == away_team: away_odds = odds_val_from_details
+                    elif team_abbr_from_details == home_team: home_odds = odds_val_from_details
 
-        away_moneyline = str(away_moneyline_data['current']['odds']) if 'current' in away_moneyline_data else str(game['odds']['awayTeamOdds']['moneyLine'])
+        if str(away_odds).upper() == 'EVEN': away_odds = 100
+        if str(home_odds).upper() == 'EVEN': home_odds = 100
 
-        "100" if str(away_moneyline) == "EVEN" else away_moneyline
+        away_odds_str = f"+{away_odds}" if isinstance(away_odds, (int, float)) and away_odds > 0 else str(away_odds)
+        home_odds_str = f"+{home_odds}" if isinstance(home_odds, (int, float)) and home_odds > 0 else str(home_odds)
 
-        #away_sign = '+' + str(away_moneyline) if int(away_moneyline) >= 0 else str(away_moneyline)
-        if str(away_moneyline).upper() == "OFF":
-            away_sign = "OFF"
-        else:
-            away_sign = '+' + str(away_moneyline) if int(away_moneyline) >= 0 else str(away_moneyline)
-
-        home_moneyline_data = game['odds']['moneyline']['home']
-
-        home_moneyline = str(home_moneyline_data['current']['odds']) if 'current' in home_moneyline_data else str(game['odds']['homeTeamOdds']['moneyLine'])
-
-        "100" if str(home_moneyline) == "EVEN" else home_moneyline
-
-        #home_sign = '+' + str(home_moneyline) if int(home_moneyline) >= 0 else str(home_moneyline)
-        if str(home_moneyline).upper() == "OFF":
-            home_sign = "OFF"
-        else:
-            home_sign = '+' + str(home_moneyline) if int(home_moneyline) >= 0 else str(home_moneyline)
-
-        inning = game['fullStatus']['type']['shortDetail']
-
-        #runs_scored = int(home_score + away_score)
-
-        #print(runs_scored)
-
-        total = game['odds']['total'].get('current', {}).get('line', f"o/{game['odds']['total']['under']['close']['line']}")
-
-        away_cell_color = next((comp['color'] for comp in game['competitors'] if comp['homeAway'] == "away"), None)
-
-        home_cell_color = next((comp['color'] for comp in game['competitors'] if comp['homeAway'] == "home"), None)
-
-        away_text_color = next((comp['alternateColor'] for comp in game['competitors'] if comp['homeAway'] == "away"), None)
-
-        home_text_color = next((comp['alternateColor'] for comp in game['competitors'] if comp['homeAway'] == "home"), None)
-
+        main_table = ax.table(
+            cellText=[[away_team, '', away_odds_str], [home_team, '', home_odds_str]],
+            colLabels=["Team", "Status", "Odds"], colWidths=[0.4, 0.3, 0.3],
+            loc='center', cellLoc='center', bbox=[0.2, 0.65, 0.6, 0.2]
+        )
+        time_part = ""
+        if ' - ' in status_detail:
+            time_part = status_detail.split(' - ')[1].strip()
+        elif ',' in status_detail:
+            time_part = status_detail.split(',')[1].strip()
+        status_detail = ' '.join(time_part.split(' ')[:-1]) if time_part else status_detail
+        main_table.get_celld()[(1, 1)].get_text().set_text(status_detail)
         
-
+        # Style the pre-game table
+        main_table.auto_set_font_size(False)
+        main_table.set_fontsize(24)
+        for key, cell in main_table.get_celld().items():
+            cell.set_text_props(weight='bold', color='white')
+            cell.set_facecolor('none')
+            cell.set_edgecolor('none')
+        for i in range(3):
+            main_table.get_celld()[(0, i)].set_text_props(color='#AAAAAA')
+        main_table.get_celld()[(1, 0)].set_facecolor(away_color)
+        main_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
+        main_table.get_celld()[(2, 0)].set_facecolor(home_color)
+        main_table.get_celld()[(2, 0)].get_text().set_color(home_alt_color)
         
-
-        data.append([away_team, away_score, inning, away_sign])
-
-        data.append([home_team, home_score, total, home_moneyline])
-
+        # --- Starting Pitchers Table ---
+        away_pitcher_name = away_comp.get('probables', [{}])[0].get('athlete', {}).get('displayName', 'N/A')
+        away_pitcher_stats = away_comp.get('probables', [{}])[0].get('summary', '')
+        home_pitcher_name = home_comp.get('probables', [{}])[0].get('athlete', {}).get('displayName', 'N/A')
+        home_pitcher_stats = home_comp.get('probables', [{}])[0].get('summary', '')
         
+        pitcher_table = ax.table(
+            cellText=[[away_pitcher_name, home_pitcher_name], [away_pitcher_stats, home_pitcher_stats]],
+            colLabels=["Away Starter", "Home Starter"], colWidths=[0.5, 0.5],
+            loc='center', cellLoc='center', bbox=[0.2, 0.45, 0.6, 0.2]
+        )
+        pitcher_table.auto_set_font_size(False)
+        pitcher_table.set_fontsize(18)
+        for key, cell in pitcher_table.get_celld().items():
+            cell.set_text_props(weight='bold', color='white')
+            cell.set_facecolor('none')
+            cell.set_edgecolor('none')
+        pitcher_table.get_celld()[(0, 0)].set_text_props(color='#AAAAAA')
+        pitcher_table.get_celld()[(0, 1)].set_text_props(color='#AAAAAA')
+        pitcher_table.get_celld()[(1, 0)].set_facecolor(away_color)
+        pitcher_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
+        pitcher_table.get_celld()[(1, 1)].set_facecolor(home_color)
+        pitcher_table.get_celld()[(1, 1)].get_text().set_color(home_alt_color)
 
-    #col_titles = ["", '' if str(away_score) == "" else "Runs", '', "Odds"]
-
-    # Determine if both home and away scores are blank
-
-    if str(home_score) == "":
-
-        col_titles = ["", "", "", "Odds"]  # Both scores are blank, so set both titles blank
 
     else:
-
-        col_titles = ["", "Runs", "", "Odds"]
-
-    
-
-    table = ax.table(cellText=data, colLabels=col_titles, loc='left', cellLoc='center')
-
-    # Create the figure and toggle full-screen mode
-
+        # --- LIVE OR POST-GAME DISPLAY ---
+        # Draw Linescore Table
+        linescore_table = ax.table(
+            cellText=[[''] * 13] * 2,
+            colLabels=['', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'R', 'H', 'E'],
+            colWidths=[0.2] + [0.05] * 12, loc='center', cellLoc='center',
+            bbox=[0.1, 0.6, 0.8, 0.25]
+        )
+        linescore_table.auto_set_font_size(False)
+        linescore_table.set_fontsize(30)
         
-
-    bg_color = '#808080'
-
-    
-
-    
-
-
-
-    # Adjust font size
-
-    table.auto_set_font_size(False)
-
-    table.set_fontsize(48)
-
-    table.scale(.6, 2.75)
-
-    
-
-    table.auto_set_column_width(col=list(range(len(col_titles))))
-
-    
-
-    pitcher = []
-
-    for game in yankees_games:
-
-        away_starter = next((comp['summaryAthletes'][0]['athlete']['shortName'] for comp in game['competitors'] if comp['homeAway'] == "away"), None)
-
-        home_starter = next((comp['summaryAthletes'][0]['athlete']['shortName'] for comp in game['competitors'] if comp['homeAway'] == "home"), None)
-
-        
-
-        pitcher.append([away_starter])
-
-        pitcher.append([home_starter])
-
-        
-
-    pitcher_col_titles = ["Starting Pitchers"]
-
-    pitcher_table = ax.table(cellText=pitcher, colLabels=pitcher_col_titles, bbox=[1, .4, .3, .2], cellLoc='center')
-
-    print(pitcher)
-
-    
-
-    pitcher_table.auto_set_font_size(False)
-
-    pitcher_table.set_fontsize(24)
-
-    #pitcher_table.scale(.6, 2.25)
-
-    
-
-    pitcher_table.auto_set_column_width(10)
-
-    #pitcher_table.auto_set_column_width(col=list(range(len(max(home_starter, away_starter))))
-
-    
-
-    
-
-    if 'situation' in game:
-
-        live = []
-
-        for game_data in yankees_games:
-
-            outs = game_data['outsText']
-
-            bases = game_data['baseRunnersText']
-
-            balls = game_data['situation']['balls']
-
-            strikes = game_data['situation']['strikes']
-
-            #print(outs, " Outs", bases)
-
+        lighter_grey_bg = '#444444'
+        for key, cell in linescore_table.get_celld().items():
+            cell.set_facecolor(lighter_grey_bg)
+            cell.set_text_props(weight='bold', color='white')
+            cell.set_edgecolor('none')
             
+        for i in range(13):
+            linescore_table.get_celld()[(0, i)].set_text_props(color='#AAAAAA')
+        
+        rhe_grey = '#5A5A5A'
+        for row_idx in range(3):
+            for col_idx in range(10, 13):
+                linescore_table.get_celld()[(row_idx, col_idx)].set_facecolor(rhe_grey)
+        
+        away_linescores = away_comp.get('linescores', [])
+        home_linescores = home_comp.get('linescores', [])
+        linescore_table.get_celld()[(1, 0)].get_text().set_text(away_team)
+        linescore_table.get_celld()[(1, 0)].set_facecolor(away_color)
+        linescore_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
+        for i, score in enumerate(away_linescores):
+            if i < 9: linescore_table.get_celld()[(1, i + 1)].get_text().set_text(str(int(score.get('value', 0))))
+        linescore_table.get_celld()[(1, 10)].get_text().set_text(str(away_comp.get('score', '')))
+        linescore_table.get_celld()[(1, 11)].get_text().set_text(str(away_comp.get('hits', '')))
+        linescore_table.get_celld()[(1, 12)].get_text().set_text(str(away_comp.get('errors', '')))
+        
+        linescore_table.get_celld()[(2, 0)].get_text().set_text(home_team)
+        linescore_table.get_celld()[(2, 0)].set_facecolor(home_color)
+        linescore_table.get_celld()[(2, 0)].get_text().set_color(home_alt_color)
+        for i, score in enumerate(home_linescores):
+            if i < 9: linescore_table.get_celld()[(2, i + 1)].get_text().set_text(str(int(score.get('value', 0))))
+        linescore_table.get_celld()[(2, 10)].get_text().set_text(str(home_comp.get('score', '')))
+        linescore_table.get_celld()[(2, 11)].get_text().set_text(str(home_comp.get('hits', '')))
+        linescore_table.get_celld()[(2, 12)].get_text().set_text(str(home_comp.get('errors', '')))
 
-            live.append([bases])
-
-            live.append([outs])
-
-            live.append([f"{balls}-{strikes}"])
-
+        if status_name == 'STAUS_IN_PROGRESS':
+            pitcher_batter_table = ax.table(
+                cellText=[['', '']], colLabels=["Pitching", "At Bat"],
+                colWidths=[0.3, 0.3], loc='center', cellLoc='center', bbox=[0.25, 0.4, 0.5, 0.15]
+            )
+            live_table = ax.table(
+                cellText=[['']], loc='center', cellLoc='center', bbox=[0.15, 0.25, 0.7, 0.1]
+            )
             
-
-        #pitcher_col_titles = ["Starters"]
-
-        live_table = ax.table(cellText=live, bbox=[-.35, .1, .5, .2], cellLoc='center')
-
-        #print(pitcher)
-
-        
-
-        live_table.auto_set_font_size(False)
-
-        live_table.set_fontsize(24)
-
-        #live_table.scale(.6, 2.75)
-
-        for key, cell in live_table._cells.items():
-
-            row, col = key
-
-            if col == 0:
-
-                cell.set_facecolor(bg_color)  # Light gray color
-
-                cell.set_text_props(color= 'white')
-
-        for cell in live_table.get_celld().values():
-
-            cell.set_linewidth(0)
-
-                #prop =   prop = fm.FontProperties(family='Times New Roman')
-
-        for cell in live_table._cells.values():
-
-            cell.set_text_props(weight='bold')  
-
-        
-
-        live_table.auto_set_column_width(col=list(range(len(bases))))
-
-        
-
-        bat = []
-
-        for games_data in yankees_games:
-
-            batter = games_data['situation']['batter']['athlete']['shortName']
-
-            play = games_data['situation']['lastPlay']['shortText']
-
+            # Style the pitcher/batter table
+            pitcher_batter_table.auto_set_font_size(False)
+            pitcher_batter_table.set_fontsize(24)
+            matchup_table_bg = '#555555' # Lighter grey background
+            for key, cell in pitcher_batter_table.get_celld().items():
+                cell.set_text_props(weight='bold', color='white')
+                cell.set_facecolor(matchup_table_bg)
+                cell.set_edgecolor('none')
             
+            # Style the live table (transparent)
+            live_table.auto_set_font_size(False)
+            live_table.set_fontsize(24)
+            for key, cell in live_table.get_celld().items():
+                cell.set_text_props(weight='bold', color='white')
+                cell.set_facecolor('none')
+                cell.set_edgecolor('none')
 
-            bat.append([batter])
+            # Style headers for matchup table
+            pitcher_batter_table.get_celld()[(0, 0)].set_text_props(color='#AAAAAA')
+            pitcher_batter_table.get_celld()[(0, 1)].set_text_props(color='#AAAAAA')
+            
+            sit = game.get('situation', {})
+            
+            # Populate Live Tables
+            pitcher_data = sit.get('pitcher', {}).get('athlete', {})
+            batter_data = sit.get('batter', {}).get('athlete', {})
+            pitcher_batter_table.get_celld()[(1, 0)].get_text().set_text(pitcher_data.get('displayName', 'N/A'))
+            pitcher_batter_table.get_celld()[(1, 1)].get_text().set_text(batter_data.get('displayName', 'N/A'))
+            
+            # --- Dynamic Coloring for Pitcher/Batter Table ---
+            pitcher_team_id = pitcher_data.get('team', {}).get('id')
+            batter_team_id = batter_data.get('team', {}).get('id')
 
-            bat.append([play])
+            if pitcher_team_id == home_team_id:
+                pitcher_batter_table.get_celld()[(1, 0)].set_facecolor(home_color)
+                pitcher_batter_table.get_celld()[(1, 0)].get_text().set_color(home_alt_color)
+            else:
+                pitcher_batter_table.get_celld()[(1, 0)].set_facecolor(away_color)
+                pitcher_batter_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
+            
+            if batter_team_id == home_team_id:
+                pitcher_batter_table.get_celld()[(1, 1)].set_facecolor(home_color)
+                pitcher_batter_table.get_celld()[(1, 1)].get_text().set_color(home_alt_color)
+            else:
+                pitcher_batter_table.get_celld()[(1, 1)].set_facecolor(away_color)
+                pitcher_batter_table.get_celld()[(1, 1)].get_text().set_color(away_alt_color)
 
-        
 
-        #pitcher_col_titles = ["Starters"]
+            outs_count = sit.get('outs', 0)
+            outs_text = "1 Out" if outs_count == 1 else f"{outs_count} Outs"
+            
+            runners_on_base = []
+            if sit.get('onFirst'):
+                runners_on_base.append("1st")
+            if sit.get('onSecond'):
+                runners_on_base.append("2nd")
+            if sit.get('onThird'):
+                runners_on_base.append("3rd")
+            
+            if not runners_on_base:
+                bases = "Bases Empty"
+            elif len(runners_on_base) == 3:
+                bases = "Bases Loaded"
+            else:
+                runners_str = " & ".join(runners_on_base)
+                base_label = "Runner on" if len(runners_on_base) == 1 else "Runners on"
+                bases = f"{base_label} {runners_str}"
 
-        bat_table = ax.table(cellText=bat, bbox=[0.35, 0.1, .75, .2], cellLoc='center')
+            count = f"{sit.get('balls', 0)}-{sit.get('strikes', 0)} Count"
+            live_table.get_celld()[(0, 0)].get_text().set_text(f"Bases: {bases}   |   {outs_text}   |   {count}")
+        else:
+             post_game_table = ax.table(
+                cellText=[[away_team, ''], [home_team, status_detail]],
+                colLabels=["Team", "Status"], colWidths=[0.3, 0.4],
+                loc='center', cellLoc='center', bbox=[0.25, 0.3, 0.5, 0.2]
+             )
+             post_game_table.auto_set_font_size(False)
+             post_game_table.set_fontsize(24)
+             for key, cell in post_game_table.get_celld().items():
+                cell.set_text_props(weight='bold', color='white')
+                cell.set_facecolor('none')
+                cell.set_edgecolor('none')
+             post_game_table.get_celld()[(0, 0)].set_text_props(color='#AAAAAA')
+             post_game_table.get_celld()[(0, 1)].set_text_props(color='#AAAAAA')
+             post_game_table.get_celld()[(1, 0)].set_facecolor(away_color)
+             post_game_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
+             post_game_table.get_celld()[(2, 0)].set_facecolor(home_color)
+             post_game_table.get_celld()[(2, 0)].get_text().set_color(home_alt_color)
 
-        #print(pitcher)
-
-        
-
-        bat_table.auto_set_font_size(False)
-
-        bat_table.set_fontsize(24)
-
-        #live_table.scale(.6, 2.75)
-
-        for key, cell in bat_table._cells.items():
-
-            row, col = key
-
-            if col == 0:
-
-                cell.set_facecolor(bg_color)  # Light gray color
-
-                cell.set_text_props(color= 'white')
-
-        for cell in bat_table.get_celld().values():
-
-            cell.set_linewidth(0)
-
-        
-
-           
-
-    else:
-
-        None
-
+    update_time = datetime.now().strftime('%H:%M:%S')
+    ax.text(0.99, 0.01, f'Last Updated: {update_time}',
+            transform=ax.transAxes, fontsize=12, color='gray',
+            horizontalalignment='right')
     
+    fig.savefig(SAVE_PATH_PNG, facecolor=fig.get_facecolor(), edgecolor='none')
+    print(f"Scoreboard image saved to {SAVE_PATH_PNG}")
 
+if __name__ == "__main__":
+    ensure_output_directory_exists()
+    plt.ion()
+    fig = plt.figure(figsize=(16, 9))
+    fig.patch.set_facecolor('#333333')
+    fig.canvas.mpl_connect('close_event', lambda event: sys.exit(0))
+
+    mng = plt.get_current_fig_manager()
+    try: mng.window.showMaximized()
+    except AttributeError:
+        try: mng.full_screen_toggle()
+        except AttributeError: print("Warning: Could not automatically maximize or full-screen the window.")
     
-
-    
-
-    
-
-  
-
-        #prop =   prop = fm.FontProperties(family='Times New Roman')
-
-    for cell in pitcher_table._cells.values():
-
-        cell.set_text_props(weight='bold')
-
-    
-
-        #prop =   prop = fm.FontProperties(family='Times New Roman')
-
-    for cell in table._cells.values():
-
-        cell.set_text_props(weight='bold')
-
-    
-
-    
-
-    # Set face color for header cells
-
-    for i in range(len(headers)):
-
-        header_cells = table.get_celld()[(0, i)]
-
-        header_cells.set_facecolor('#777777')
-
-        
-
-    # Set face color for header cells
-
-    for i in range(len(headers)):
-
-        header_cells = pitcher_table.get_celld()[(0, i)]
-
-        header_cells.set_facecolor('#777777')
-
-    
-
-    for cell in table.get_celld().values():
-
-        cell.set_linewidth(0)
-
-        
-
-    for cell in pitcher_table.get_celld().values():
-
-        cell.set_linewidth(0)
-
-        
-
-    # Color the cells in the first row and column
-
-    for key, cell in table._cells.items():
-
-        row, col = key
-
-        if row == 0:
-
-            cell.set_facecolor('#666666')  # Light gray color
-
-        if col == 0 and row == 1:
-
-            cell.set_facecolor(f"#{away_cell_color}")
-
-            cell.set_text_props(color=f"#{away_text_color}")
-
-        if col == 0 and row == 2:
-
-            cell.set_facecolor(f"#{home_cell_color}")
-
-            cell.set_text_props(color=f"#{home_text_color}")
-
-        if col == 0 and row == 0:
-
-            cell.set_facecolor(bg_color)
-
-
-
-    # Add title
-
-    plt.title("BASEMENT SCOREBOARD \nYANKEES HYPE", fontsize=72, pad=10, fontweight='bold', color='white', y=.75)
-
-
-
-    # Adjust layout to fit the table properly
-
-    plt.subplots_adjust(left=0.2, right=0.8, top=0.9, bottom=0.1)
-
-
-
-    fig.patch.set_facecolor(bg_color)  # Set the background color here (e.g., light gray)
-
-
-
-
-
-    # Save the figure as PNG
-
-    plt.savefig('yankees_games.png', bbox_inches='tight')
-
-     
-
-    # Function to close the plot after a specified duration
-
-    def close_plot(event):
-
-        plt.close()
-
-
-
-    # Se
-
-    
-
-    # Set the plot window to be non-topmost (behind any open window)
-
-    #plt.get_current_fig_manager().window.wm_attributes('-topmost', 0)
-
-    
-
-    # Retrieve the window associated with the figure manager
-
-
-    
-
-    plt.show()
-
-
-
-else:
-
-    print("Failed to fetch data. Status code:", response.status_code)
-
+    while True:
+        now = datetime.now()
+        if now.hour == 1 and now.minute >= 30:
+            print(f"Shutdown time reached ({now.strftime('%H:%M')}). Exiting script.")
+            sys.exit(0)
+
+        try:
+            update_and_redraw_plot(fig)
+            plt.pause(UPDATE_INTERVAL_SECONDS)
+        except Exception as e:
+            print(f"An error occurred in the main loop: {e}")
+            break
