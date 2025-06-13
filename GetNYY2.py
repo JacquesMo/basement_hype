@@ -309,23 +309,23 @@ def update_and_redraw_plot(fig):
             count = f"{sit.get('balls', 0)}-{sit.get('strikes', 0)} Count"
             live_table.get_celld()[(0, 0)].get_text().set_text(f"Bases: {bases}   |   {outs_text}   |   {count}")
         else:
-             post_game_table = ax.table(
+             pre_game_table = ax.table(
                 cellText=[[away_team, ''], [home_team, status_detail]],
                 colLabels=["Team", "Status"], colWidths=[0.3, 0.4],
                 loc='center', cellLoc='center', bbox=[0.25, 0.3, 0.5, 0.2]
              )
-             post_game_table.auto_set_font_size(False)
-             post_game_table.set_fontsize(24)
+             pre_game_table.auto_set_font_size(False)
+             pre_game_table.set_fontsize(24)
              for key, cell in post_game_table.get_celld().items():
                 cell.set_text_props(weight='bold', color='white')
                 cell.set_facecolor('none')
                 cell.set_edgecolor('none')
-             post_game_table.get_celld()[(0, 0)].set_text_props(color='#AAAAAA')
-             post_game_table.get_celld()[(0, 1)].set_text_props(color='#AAAAAA')
-             post_game_table.get_celld()[(1, 0)].set_facecolor(away_color)
-             post_game_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
-             post_game_table.get_celld()[(2, 0)].set_facecolor(home_color)
-             post_game_table.get_celld()[(2, 0)].get_text().set_color(home_alt_color)
+             pre_game_table.get_celld()[(0, 0)].set_text_props(color='#AAAAAA')
+             pre_game_table.get_celld()[(0, 1)].set_text_props(color='#AAAAAA')
+             pre_game_table.get_celld()[(1, 0)].set_facecolor(away_color)
+             pre_game_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
+             pre_game_table.get_celld()[(2, 0)].set_facecolor(home_color)
+             pre_game_table.get_celld()[(2, 0)].get_text().set_color(home_alt_color)
 
     update_time = datetime.now().strftime('%H:%M:%S')
     ax.text(0.99, 0.01, f'Last Updated: {update_time}',

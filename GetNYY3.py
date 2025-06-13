@@ -11,10 +11,18 @@ from datetime import datetime
 TEAM_ABBREVIATION = 'NYY'
 UPDATE_INTERVAL_SECONDS = 10 
 
-# --- Define the filename for the saved JSON file ---
-output_dir = "output"
-SAVE_PATH_JSON = f"{output_dir}/scoreboard_data.json"
-SAVE_PATH_PNG = f"{output_dir}/scoreboard.png"
+# --- Define the output paths based on the script's location ---
+# This makes the script work correctly when run from cron
+try:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+except NameError:
+    # Fallback for interactive environments
+    script_dir = os.getcwd()
+    
+output_dir = os.path.join(script_dir, "output")
+SAVE_PATH_JSON = os.path.join(output_dir, "scoreboard_data.json")
+SAVE_PATH_PNG = os.path.join(output_dir, "scoreboard.png")
+
 
 # --- ESPN API Endpoint (Updated to a more stable endpoint) ---
 API_URL = "http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
@@ -76,8 +84,8 @@ def update_and_redraw_plot(fig):
 
     # --- Set the main title ---
     title = ax.set_title(
-        f"DISTRICT SCOREBOARD\n{TEAM_ABBREVIATION}",
-        fontsize=40, pad=40, fontweight='bold', color='white'
+        f"DC SCOREBOARD\n{TEAM_ABBREVIATION} HYPE",
+        fontsize=50, pad=40, fontweight='bold', color='white', fontname='Times New Roman'
     )
 
     if not game:
@@ -159,10 +167,12 @@ def update_and_redraw_plot(fig):
         main_table.get_celld()[(2, 0)].get_text().set_color(home_alt_color)
         
         # --- Starting Pitchers Table ---
-        away_pitcher_name = away_comp.get('probables', [{}])[0].get('athlete', {}).get('displayName', 'N/A')
-        away_pitcher_stats = away_comp.get('probables', [{}])[0].get('summary', '')
-        home_pitcher_name = home_comp.get('probables', [{}])[0].get('athlete', {}).get('displayName', 'N/A')
-        home_pitcher_stats = home_comp.get('probables', [{}])[0].get('summary', '')
+        away_probable_list = away_comp.get('probables', [])
+        home_probable_list = home_comp.get('probables', [])
+        away_pitcher_name = away_probable_list[0].get('athlete', {}).get('displayName', 'TBD') if away_probable_list else 'TBD'
+        away_pitcher_stats = away_probable_list[0].get('summary', '') if away_probable_list else ''
+        home_pitcher_name = home_probable_list[0].get('athlete', {}).get('displayName', 'TBD') if home_probable_list else 'TBD'
+        home_pitcher_stats = home_probable_list[0].get('summary', '') if home_probable_list else ''
         
         pitcher_table = ax.table(
             cellText=[[away_pitcher_name, home_pitcher_name], [away_pitcher_stats, home_pitcher_stats]],
@@ -190,10 +200,10 @@ def update_and_redraw_plot(fig):
             cellText=[[''] * 13] * 2,
             colLabels=['', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'R', 'H', 'E'],
             colWidths=[0.2] + [0.05] * 12, loc='center', cellLoc='center',
-            bbox=[0.1, 0.6, 0.8, 0.25]
+            bbox=[0.05, 0.6, 0.9, 0.35]
         )
         linescore_table.auto_set_font_size(False)
-        linescore_table.set_fontsize(30)
+        linescore_table.set_fontsize(38)
         
         lighter_grey_bg = '#444444'
         for key, cell in linescore_table.get_celld().items():
@@ -209,14 +219,21 @@ def update_and_redraw_plot(fig):
             for col_idx in range(10, 13):
                 linescore_table.get_celld()[(row_idx, col_idx)].set_facecolor(rhe_grey)
         
+        for row_idx in range(1, 3):
+            for col_idx in range(1, 10):
+                linescore_table.get_celld()[(row_idx, col_idx)].set_edgecolor('black')
+        
         away_linescores = away_comp.get('linescores', [])
         home_linescores = home_comp.get('linescores', [])
+        away_score = str(away_comp.get('score', ''))
+        home_score = str(home_comp.get('score', ''))
+
         linescore_table.get_celld()[(1, 0)].get_text().set_text(away_team)
         linescore_table.get_celld()[(1, 0)].set_facecolor(away_color)
         linescore_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
         for i, score in enumerate(away_linescores):
             if i < 9: linescore_table.get_celld()[(1, i + 1)].get_text().set_text(str(int(score.get('value', 0))))
-        linescore_table.get_celld()[(1, 10)].get_text().set_text(str(away_comp.get('score', '')))
+        linescore_table.get_celld()[(1, 10)].get_text().set_text(away_score)
         linescore_table.get_celld()[(1, 11)].get_text().set_text(str(away_comp.get('hits', '')))
         linescore_table.get_celld()[(1, 12)].get_text().set_text(str(away_comp.get('errors', '')))
         
@@ -225,7 +242,7 @@ def update_and_redraw_plot(fig):
         linescore_table.get_celld()[(2, 0)].get_text().set_color(home_alt_color)
         for i, score in enumerate(home_linescores):
             if i < 9: linescore_table.get_celld()[(2, i + 1)].get_text().set_text(str(int(score.get('value', 0))))
-        linescore_table.get_celld()[(2, 10)].get_text().set_text(str(home_comp.get('score', '')))
+        linescore_table.get_celld()[(2, 10)].get_text().set_text(home_score)
         linescore_table.get_celld()[(2, 11)].get_text().set_text(str(home_comp.get('hits', '')))
         linescore_table.get_celld()[(2, 12)].get_text().set_text(str(home_comp.get('errors', '')))
 
@@ -308,24 +325,40 @@ def update_and_redraw_plot(fig):
 
             count = f"{sit.get('balls', 0)}-{sit.get('strikes', 0)} Count"
             live_table.get_celld()[(0, 0)].get_text().set_text(f"Bases: {bases}   |   {outs_text}   |   {count}")
-        else:
+        elif status_name == 'STATUS_FINAL':
+             # --- Draw Post-Game Table ---
              post_game_table = ax.table(
-                cellText=[[away_team, ''], [home_team, status_detail]],
-                colLabels=["Team", "Status"], colWidths=[0.3, 0.4],
-                loc='center', cellLoc='center', bbox=[0.25, 0.48, 0.5, 0.2]
+                cellText=[[away_team, away_score, status_detail], [home_team, home_score, '']],
+                #colLabels=["Team", "Runs", "Status"], 
+                colWidths=[0.3, 0.2, 0.4],
+                loc='center', cellLoc='center', bbox=[0.35, 0.3, 0.3, 0.25]
              )
              post_game_table.auto_set_font_size(False)
-             post_game_table.set_fontsize(24)
+             post_game_table.set_fontsize(30)
              for key, cell in post_game_table.get_celld().items():
                 cell.set_text_props(weight='bold', color='white')
-                cell.set_facecolor('none')
+                cell.set_facecolor('#444444')
                 cell.set_edgecolor('none')
-             post_game_table.get_celld()[(0, 0)].set_text_props(color='#AAAAAA')
-             post_game_table.get_celld()[(0, 1)].set_text_props(color='#AAAAAA')
-             post_game_table.get_celld()[(1, 0)].set_facecolor(away_color)
-             post_game_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
-             post_game_table.get_celld()[(2, 0)].set_facecolor(home_color)
-             post_game_table.get_celld()[(2, 0)].get_text().set_color(home_alt_color)
+             #post_game_table.get_celld()[(0, 0)].set_text_props(color='#AAAAAA')
+             #post_game_table.get_celld()[(0, 1)].set_text_props(color='#AAAAAA')
+             #post_game_table.get_celld()[(0, 2)].set_text_props(color='#AAAAAA')
+             post_game_table.get_celld()[(0, 0)].set_facecolor(away_color)
+             post_game_table.get_celld()[(0, 0)].get_text().set_color(away_alt_color)
+             post_game_table.get_celld()[(1, 0)].set_facecolor(home_color)
+             post_game_table.get_celld()[(1, 0)].get_text().set_color(home_alt_color)
+
+             # --- WINNER MESSAGE LOGIC ---
+             winner_abbr = ''
+             if int(away_score) > int(home_score):
+                 winner_abbr = away_team
+             elif int(home_score) > int(away_score):
+                 winner_abbr = home_team
+             
+             if winner_abbr == TEAM_ABBREVIATION:
+                 ax.text(0.5, 0.15, 'YANKEES WIN',
+                         transform=ax.transAxes, fontsize=60, color='blue',
+                         horizontalalignment='center', fontweight='bold',
+                         bbox=dict(facecolor='white', alpha=0.5, edgecolor='none', boxstyle='round,pad=0.2'))
 
     update_time = datetime.now().strftime('%H:%M:%S')
     ax.text(0.99, 0.01, f'Last Updated: {update_time}',
@@ -339,7 +372,7 @@ if __name__ == "__main__":
     ensure_output_directory_exists()
     plt.ion()
     fig = plt.figure(figsize=(16, 9))
-    fig.patch.set_facecolor('#333333')
+    fig.patch.set_facecolor('#021e4d')
     fig.canvas.mpl_connect('close_event', lambda event: sys.exit(0))
 
     mng = plt.get_current_fig_manager()
@@ -350,7 +383,7 @@ if __name__ == "__main__":
     
     while True:
         now = datetime.now()
-        if now.hour == 20 and now.minute >= 45:
+        if now.hour == 1 and now.minute >= 30:
             print(f"Shutdown time reached ({now.strftime('%H:%M')}). Exiting script.")
             sys.exit(0)
 
