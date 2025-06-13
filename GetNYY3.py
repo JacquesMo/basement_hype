@@ -1,6 +1,8 @@
 import requests
 import time
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 import sys
 import json
 import os
@@ -29,6 +31,9 @@ API_URL = "http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
 }
+
+mpl.rcParams['font.family'] = "sans-serif"
+mpl.rcParams['font.sans-serif'] = "Georgia"
 def ensure_output_directory_exists():
     """Ensure the output directory exists."""
     if not os.path.exists(output_dir):
