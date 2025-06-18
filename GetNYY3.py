@@ -264,8 +264,13 @@ def update_and_redraw_plot(fig):
                 cellText=[['', '']], colLabels=["Pitching", "At Bat"],
                 colWidths=[0.3, 0.3], loc='center', cellLoc='center', bbox=[0.25, 0.4, 0.5, 0.15]
             )
+            
+            # --- New two-line live table ---
             live_table = ax.table(
-                cellText=[['']], loc='center', cellLoc='center', bbox=[0.15, 0.25, 0.7, 0.1]
+                cellText=[[''], ['']], loc='center', cellLoc='center', bbox=[0.1, 0.2, 0.5, 0.15]
+            )
+            last_play_table = ax.table(
+                cellText=[['']], colLabels=["Last Play"], loc='center', cellLoc='center', bbox=[0.65, 0.2, 0.25, 0.15]
             )
             
             # Style the pitcher/batter table
@@ -279,11 +284,21 @@ def update_and_redraw_plot(fig):
             
             # Style the live table (transparent)
             live_table.auto_set_font_size(False)
-            live_table.set_fontsize(24)
+            live_table.set_fontsize(20)
             for key, cell in live_table.get_celld().items():
-                cell.set_text_props(weight='bold', color='white')
+                cell.set_text_props(weight='bold', color='white', ha='left')
                 cell.set_facecolor('none')
                 cell.set_edgecolor('none')
+
+            # Style the last play table
+            last_play_table.auto_set_font_size(False)
+            last_play_table.set_fontsize(20)
+            for key, cell in last_play_table.get_celld().items():
+                cell.set_text_props(weight='bold', color='white', wrap=True)
+                cell.set_facecolor('none')
+                cell.set_edgecolor('none')
+            last_play_table.get_celld()[(0,0)].set_text_props(color='white')
+
 
             # Style headers for matchup table
             pitcher_batter_table.get_celld()[(0, 0)].set_text_props(color='#AAAAAA')
@@ -336,8 +351,26 @@ def update_and_redraw_plot(fig):
                 base_label = "Runner on" if len(runners_on_base) == 1 else "Runners on"
                 bases = f"{base_label} {runners_str}"
 
-            count = f"{sit.get('balls', 0)}-{sit.get('strikes', 0)} Count"
-            live_table.get_celld()[(0, 0)].get_text().set_text(f"Bases: {bases}   |   {outs_text}   |   {count}")
+            count = f"{sit.get('balls', 0)}-{sit.get('strikes', 0)}"
+            live_table.get_celld()[(0, 0)].get_text().set_text(f"Bases: {bases}")
+            live_table.get_celld()[(1, 0)].get_text().set_text(f"{outs_text}   |   {count}")
+            live_table.get_celld()[(1, 0)].set_text_props(ha='center')
+            live_table.get_celld()[(0, 0)].set_text_props(ha='center')
+
+            # Adjust live_table position to 33% from the left
+            live_table._bbox = [0.00, 0.2, 0.5, 0.15]
+
+            # Populate Last Play table using the alternativeText or falling back to text
+            last_play_type_info = sit.get('lastPlay', {})
+            last_play_text = last_play_type_info.get('text', 'N/A')
+            last_play_table.get_celld()[(1, 0)].get_text().set_text(last_play_text)
+            last_play_table.get_celld()[(0, 0)].set_text_props(ha='center')
+            last_play_table.get_celld()[(1, 0)].set_text_props(ha='center')
+
+            # Adjust last_play_table position to 66% from the left
+            last_play_table._bbox = [0.66, 0.2, 0.25, 0.15]
+
+
         elif status_name == 'STATUS_FINAL':
              # --- Draw Post-Game Table ---
              post_game_table = ax.table(
@@ -385,7 +418,7 @@ if __name__ == "__main__":
     ensure_output_directory_exists()
     plt.ion()
     fig = plt.figure(figsize=(16, 9))
-    fig.patch.set_facecolor('#666666')
+    fig.patch.set_facecolor('#606060')
     fig.canvas.mpl_connect('close_event', lambda event: sys.exit(0))
 
     mng = plt.get_current_fig_manager()
