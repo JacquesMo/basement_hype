@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NBA Scoreboard - DC Hype</title>
+    <style>
+        body {
+            background: #222;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .scoreboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 32px;
+            margin: 40px auto;
+            max-width: 1200px;
+        }
+        .game-card {
+            background: #333;
+            border-radius: 16px;
+            padding: 24px 16px 16px 16px;
+            box-shadow: 0 0 24px #0008;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 0;
+        }
+        .teams {
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            gap: 32px;
+            justify-content: center;
+        }
+        .team {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+        .team-logo {
+            width: 64px;
+            height: 64px;
+            margin: 0 0 8px 0;
+            border-radius: 8px;
+            background: none;
+        }
+        .team-score {
+            font-size: 1.5em;
+            font-weight: bold;
+            text-align: center;
+            min-width: 48px;
+            transition: color 0.3s;
+            margin-top: 0;
+        }
+        .team-score.win {
+            color: #26FF00;
+        }
+        .team-score.lose {
+            color: #FF2222;
+        }
+        .team-score.neutral {
+            color: #fff;
+        }
+        .status-detail {
+            margin-top: 18px;
+            font-size: 1.1em;
+            color: #FFD700;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>NBA Scoreboard - DC Hype</h1>
+    <div id="scoreboard" class="scoreboard">
+        Loading...
+    </div>
+
+    <script>
+    async function fetchAllGames() {
+        const API_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard";
+        try {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            let html = '';
+            if (!data.events || data.events.length === 0) {
+                html = '<div>No NBA games found.</div>';
+            } else {
+                for (const event of data.events) {
+                    const game = event.competitions[0];
+                    const away = game.competitors.find(c => c.homeAway === 'away');
+                    const home = game.competitors.find(c => c.homeAway === 'home');
+                    const awayLogo = away.team.logo || '';
+                    const homeLogo = home.team.logo || '';
+                    const awayName = away.team.abbreviation;
+                    const homeName = home.team.abbreviation;
+                    const awayScore = away.score || '0';
+                    const homeScore = home.score || '0';
+                    const statusDetail = game.status.type.shortDetail || '';
+                    let awayClass = 'neutral';
+                    let homeClass = 'neutral';
+                    if (game.status.type.completed) {
+                        if (parseInt(awayScore) > parseInt(homeScore)) {
+                            awayClass = 'win';
+                            homeClass = 'lose';
+                        } else if (parseInt(homeScore) > parseInt(awayScore)) {
+                            homeClass = 'win';
+                            awayClass = 'lose';
+                        }
+                    }
+                    html += `
+                        <div class="game-card">
+                            <div class="teams">
+                                <div class="team">
+                                    <img class="team-logo" src="${awayLogo}" alt="${awayName} logo">
+                                    <span class="team-score ${awayClass}">${awayScore}</span>
+                                </div>
+                                <div class="team">
+                                    <img class="team-logo" src="${homeLogo}" alt="${homeName} logo">
+                                    <span class="team-score ${homeClass}">${homeScore}</span>
+                                </div>
+                            </div>
+                            <div class="status-detail">${statusDetail}</div>
+                        </div>
+                    `;
+                }
+            }
+            document.getElementById('scoreboard').innerHTML = html;
+        } catch (err) {
+            document.getElementById('scoreboard').innerHTML = '<div>Error loading data.</div>';
+        }
+    }
+    fetchAllGames();
+    setInterval(fetchAllGames, 5000);
+    </script>
+</body>
+</html>

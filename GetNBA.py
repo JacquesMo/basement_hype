@@ -7,10 +7,11 @@ import sys
 import json
 import os
 from datetime import datetime
+import textwrap
 
 # --- Configuration ---
 # You can set this to 'PHI', 'NYY', or any other MLB team abbreviation.
-TEAM_ABBREVIATION = 'NYY'
+TEAM_ABBREVIATION = 'WSH'
 UPDATE_INTERVAL_SECONDS = 10 
 
 # --- Define the output paths based on the script's location ---
@@ -27,7 +28,7 @@ SAVE_PATH_PNG = os.path.join(output_dir, "scoreboard.png")
 
 
 # --- ESPN API Endpoint (Updated to a more stable endpoint) ---
-API_URL = "http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
+API_URL = "http://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
 }
@@ -179,62 +180,35 @@ def update_and_redraw_plot(fig):
         main_table.get_celld()[(2, 0)].set_facecolor(home_color)
         main_table.get_celld()[(2, 0)].get_text().set_color(home_alt_color)
         
-        # --- Starting Pitchers Table ---
-        away_probable_list = away_comp.get('probables', [])
-        home_probable_list = home_comp.get('probables', [])
-        away_pitcher_name = away_probable_list[0].get('athlete', {}).get('displayName', 'TBD') if away_probable_list else 'TBD'
-        away_pitcher_stats = away_probable_list[0].get('summary', '') if away_probable_list else ''
-        home_pitcher_name = home_probable_list[0].get('athlete', {}).get('displayName', 'TBD') if home_probable_list else 'TBD'
-        home_pitcher_stats = home_probable_list[0].get('summary', '') if home_probable_list else ''
         
-        pitcher_table = ax.table(
-            cellText=[[away_pitcher_name, home_pitcher_name], [away_pitcher_stats, home_pitcher_stats]],
-            colLabels=["Away Starter", "Home Starter"], colWidths=[0.5, 0.5],
-            loc='center', cellLoc='center', bbox=[0.25, 0.375, 0.5, 0.25]
-        )
-        pitcher_table.auto_set_font_size(False)
-        pitcher_table.set_fontsize(18)
-        for key, cell in pitcher_table.get_celld().items():
-            cell.set_text_props(weight='bold', color='white')
-            cell.set_facecolor('none')
-            cell.set_edgecolor('none')
-        pitcher_table.get_celld()[(0, 0)].set_text_props(color='#AAAAAA')
-        pitcher_table.get_celld()[(0, 1)].set_text_props(color='#AAAAAA')
-        pitcher_table.get_celld()[(1, 0)].set_facecolor(away_color)
-        pitcher_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
-        pitcher_table.get_celld()[(1, 1)].set_facecolor(home_color)
-        pitcher_table.get_celld()[(1, 1)].get_text().set_color(home_alt_color)
-
-
     else:
         # --- LIVE OR POST-GAME DISPLAY ---
         # Draw Linescore Table
         linescore_table = ax.table(
-            cellText=[[''] * 13] * 2,
-            colLabels=['', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'R', 'H', 'E'],
-            colWidths=[0.2] + [0.05] * 12, loc='center', cellLoc='center',
-            bbox=[0.05, 0.6, 0.9, 0.35]
+            cellText=[[''] * 6] * 2,
+            colLabels=['', '1', '2', '3', '4', 'TOT'],
+            colWidths=[0.20] + [0.15] * 5, loc='center', cellLoc='center',
+            bbox=[0.075, 0.55, 0.85, 0.35]
         )
         linescore_table.auto_set_font_size(False)
         linescore_table.set_fontsize(38)
         
-        lighter_grey_bg = '#444444'
+        lighter_grey_bg = "#FFFFFF"
         for key, cell in linescore_table.get_celld().items():
             cell.set_facecolor(lighter_grey_bg)
             cell.set_text_props(weight='bold', color='white')
             cell.set_edgecolor('none')
             
-        for i in range(13):
-            linescore_table.get_celld()[(0, i)].set_text_props(color='#AAAAAA')
+        for i in range(6):
+            linescore_table.get_celld()[(0, i)].set_text_props(color="#CBCBCB")
         
-        rhe_grey = '#5A5A5A'
         for row_idx in range(3):
-            for col_idx in range(10, 13):
-                linescore_table.get_celld()[(row_idx, col_idx)].set_facecolor(rhe_grey)
+            for col_idx in range(6):
+                linescore_table.get_celld()[(row_idx, col_idx)].set_facecolor("#3D3D3D")
         
         for row_idx in range(1, 3):
-            for col_idx in range(1, 10):
-                linescore_table.get_celld()[(row_idx, col_idx)].set_edgecolor('black')
+            for col_idx in range(1, 6):
+                linescore_table.get_celld()[(row_idx, col_idx)].set_edgecolor("#555555")
         
         away_linescores = away_comp.get('linescores', [])
         home_linescores = home_comp.get('linescores', [])
@@ -246,130 +220,75 @@ def update_and_redraw_plot(fig):
         linescore_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
         for i, score in enumerate(away_linescores):
             if i < 9: linescore_table.get_celld()[(1, i + 1)].get_text().set_text(str(int(score.get('value', 0))))
-        linescore_table.get_celld()[(1, 10)].get_text().set_text(away_score)
-        linescore_table.get_celld()[(1, 11)].get_text().set_text(str(away_comp.get('hits', '')))
-        linescore_table.get_celld()[(1, 12)].get_text().set_text(str(away_comp.get('errors', '')))
+        linescore_table.get_celld()[(1, 5)].get_text().set_text(away_score)
         
         linescore_table.get_celld()[(2, 0)].get_text().set_text(home_team)
         linescore_table.get_celld()[(2, 0)].set_facecolor(home_color)
         linescore_table.get_celld()[(2, 0)].get_text().set_color(home_alt_color)
         for i, score in enumerate(home_linescores):
             if i < 9: linescore_table.get_celld()[(2, i + 1)].get_text().set_text(str(int(score.get('value', 0))))
-        linescore_table.get_celld()[(2, 10)].get_text().set_text(home_score)
-        linescore_table.get_celld()[(2, 11)].get_text().set_text(str(home_comp.get('hits', '')))
-        linescore_table.get_celld()[(2, 12)].get_text().set_text(str(home_comp.get('errors', '')))
+        linescore_table.get_celld()[(2, 5)].get_text().set_text(home_score)
+        # Add the status detail below the linescore table
+        ax.text(
+            0.5, 1, status_detail,
+            transform=ax.transAxes,
+            fontsize=38,
+            color="#26FF00",
+            ha='center',
+            va='top',
+            fontweight='bold'
+        )
 
         if status_name == 'STATUS_IN_PROGRESS':
-            pitcher_batter_table = ax.table(
-                cellText=[['', '']], colLabels=["Pitching", "At Bat"],
-                colWidths=[0.3, 0.3], loc='center', cellLoc='center', bbox=[0.25, 0.4, 0.5, 0.15]
+            # --- Points, Assists, Rebounds Leaders Table ---
+            # 3 rows: header, away, home
+            par_table = ax.table(
+                cellText=[['', '', ''], ['', '', ''], ['', '', '']],
+                colLabels=["Points", "Assists", "Rebounds"],
+                colWidths=[0.3, 0.3, 0.3], loc='center', cellLoc='center', bbox=[0.25, 0.1, 0.6, 0.3]
             )
-            
-            # --- New two-line live table ---
-            live_table = ax.table(
-                cellText=[[''], ['']], loc='center', cellLoc='center', bbox=[0.1, 0.2, 0.5, 0.15]
-            )
-            last_play_table = ax.table(
-                cellText=[['']], colLabels=["Last Play"], loc='center', cellLoc='center', bbox=[0.65, 0.2, 0.25, 0.15]
-            )
-            
-            # Style the pitcher/batter table
-            pitcher_batter_table.auto_set_font_size(False)
-            pitcher_batter_table.set_fontsize(24)
-            matchup_table_bg = '#555555' # Lighter grey background
-            for key, cell in pitcher_batter_table.get_celld().items():
+
+            # Style the PAR table
+            par_table.auto_set_font_size(False)
+            par_table.set_fontsize(18)
+            par_table_bg = '#555555'  # Lighter grey background
+            for key, cell in par_table.get_celld().items():
                 cell.set_text_props(weight='bold', color='white')
-                cell.set_facecolor(matchup_table_bg)
-                cell.set_edgecolor('none')
-            
-            # Style the live table (transparent)
-            live_table.auto_set_font_size(False)
-            live_table.set_fontsize(20)
-            for key, cell in live_table.get_celld().items():
-                cell.set_text_props(weight='bold', color='white', ha='left')
-                cell.set_facecolor('none')
+                cell.set_facecolor(par_table_bg)
                 cell.set_edgecolor('none')
 
-            # Style the last play table
-            last_play_table.auto_set_font_size(False)
-            last_play_table.set_fontsize(20)
-            for key, cell in last_play_table.get_celld().items():
-                cell.set_text_props(weight='bold', color='white', wrap=True)
-                cell.set_facecolor('none')
-                cell.set_edgecolor('none')
-            last_play_table.get_celld()[(0,0)].set_text_props(color='white')
+            # Style headers for PAR table
+            for i in range(3):
+                par_table.get_celld()[(0, i)].set_text_props(color='#AAAAAA')
 
+            # Get leaders for points, assists, and rebounds for each team
+            away_leaders = away_comp.get('leaders', [])
+            home_leaders = home_comp.get('leaders', [])
 
-            # Style headers for matchup table
-            pitcher_batter_table.get_celld()[(0, 0)].set_text_props(color='#AAAAAA')
-            pitcher_batter_table.get_celld()[(0, 1)].set_text_props(color='#AAAAAA')
-            
-            sit = game.get('situation', {})
-            
-            # Populate Live Tables
-            pitcher_data = sit.get('pitcher', {}).get('athlete', {})
-            batter_data = sit.get('batter', {}).get('athlete', {})
-            pitcher_batter_table.get_celld()[(1, 0)].get_text().set_text(pitcher_data.get('displayName', 'N/A'))
-            pitcher_batter_table.get_celld()[(1, 1)].get_text().set_text(batter_data.get('displayName', 'N/A'))
-            
-            # --- Dynamic Coloring for Pitcher/Batter Table ---
-            pitcher_team_id = pitcher_data.get('team', {}).get('id')
-            batter_team_id = batter_data.get('team', {}).get('id')
+            def get_leader_info(leaders, stat):
+                for leader in leaders:
+                    if leader.get('type', {}).get('name') == stat:
+                        if leader.get('leaders'):
+                            athlete = leader['leaders'][0].get('athlete', {})
+                            value = leader['leaders'][0].get('value', 0)
+                            name = athlete.get('displayName', 'N/A')
+                            return f"{name} ({value})"
+                return "N/A"
 
-            if pitcher_team_id == home_team_id:
-                pitcher_batter_table.get_celld()[(1, 0)].set_facecolor(home_color)
-                pitcher_batter_table.get_celld()[(1, 0)].get_text().set_color(home_alt_color)
-            else:
-                pitcher_batter_table.get_celld()[(1, 0)].set_facecolor(away_color)
-                pitcher_batter_table.get_celld()[(1, 0)].get_text().set_color(away_alt_color)
-            
-            if batter_team_id == home_team_id:
-                pitcher_batter_table.get_celld()[(1, 1)].set_facecolor(home_color)
-                pitcher_batter_table.get_celld()[(1, 1)].get_text().set_color(home_alt_color)
-            else:
-                pitcher_batter_table.get_celld()[(1, 1)].set_facecolor(away_color)
-                pitcher_batter_table.get_celld()[(1, 1)].get_text().set_color(away_alt_color)
+            # Populate PAR Table (row 1 = away, row 2 = home)
+            par_table.get_celld()[(1, 0)].get_text().set_text(get_leader_info(away_leaders, 'points'))
+            par_table.get_celld()[(1, 1)].get_text().set_text(get_leader_info(away_leaders, 'assists'))
+            par_table.get_celld()[(1, 2)].get_text().set_text(get_leader_info(away_leaders, 'rebounds'))
+            par_table.get_celld()[(2, 0)].get_text().set_text(get_leader_info(home_leaders, 'points'))
+            par_table.get_celld()[(2, 1)].get_text().set_text(get_leader_info(home_leaders, 'assists'))
+            par_table.get_celld()[(2, 2)].get_text().set_text(get_leader_info(home_leaders, 'rebounds'))
 
-
-            outs_count = sit.get('outs', 0)
-            outs_text = "1 Out" if outs_count == 1 else f"{outs_count} Outs"
-            
-            runners_on_base = []
-            if sit.get('onFirst'):
-                runners_on_base.append("1st")
-            if sit.get('onSecond'):
-                runners_on_base.append("2nd")
-            if sit.get('onThird'):
-                runners_on_base.append("3rd")
-            
-            if not runners_on_base:
-                bases = "Bases Empty"
-            elif len(runners_on_base) == 3:
-                bases = "Bases Loaded"
-            else:
-                runners_str = " & ".join(runners_on_base)
-                base_label = "Runner on" if len(runners_on_base) == 1 else "Runners on"
-                bases = f"{base_label} {runners_str}"
-
-            count = f"{sit.get('balls', 0)}-{sit.get('strikes', 0)}"
-            live_table.get_celld()[(0, 0)].get_text().set_text(f"Bases: {bases}")
-            live_table.get_celld()[(1, 0)].get_text().set_text(f"{outs_text}   |   {count}")
-            live_table.get_celld()[(1, 0)].set_text_props(ha='center')
-            live_table.get_celld()[(0, 0)].set_text_props(ha='center')
-
-            # Adjust live_table position to 33% from the left
-            live_table._bbox = [0.00, 0.2, 0.5, 0.15]
-
-            # Populate Last Play table using the alternativeText or falling back to text
-            last_play_type_info = sit.get('lastPlay', {})
-            last_play_text = last_play_type_info.get('text', 'N/A')
-            last_play_table.get_celld()[(1, 0)].get_text().set_text(last_play_text)
-            last_play_table.get_celld()[(0, 0)].set_text_props(ha='center')
-            last_play_table.get_celld()[(1, 0)].set_text_props(ha='center')
-
-            # Adjust last_play_table position to 66% from the left
-            last_play_table._bbox = [0.66, 0.2, 0.25, 0.15]
-
+            # --- Dynamic Coloring for PAR Table ---
+            for i in range(3):
+                par_table.get_celld()[(1, i)].set_facecolor(away_color)
+                par_table.get_celld()[(1, i)].get_text().set_color(away_alt_color)
+                par_table.get_celld()[(2, i)].set_facecolor(home_color)
+                par_table.get_celld()[(2, i)].get_text().set_color(home_alt_color)
 
         elif status_name == 'STATUS_FINAL':
              # --- Draw Post-Game Table ---
