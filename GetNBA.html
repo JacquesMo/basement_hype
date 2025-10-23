@@ -81,61 +81,104 @@
     </div>
 
     <script>
-    async function fetchAllGames() {
-        const API_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard";
-        try {
-            const response = await fetch(API_URL);
-            const data = await response.json();
-            let html = '';
-            if (!data.events || data.events.length === 0) {
-                html = '<div>No NBA games found.</div>';
-            } else {
-                for (const event of data.events) {
-                    const game = event.competitions[0];
-                    const away = game.competitors.find(c => c.homeAway === 'away');
-                    const home = game.competitors.find(c => c.homeAway === 'home');
-                    const awayLogo = away.team.logo || '';
-                    const homeLogo = home.team.logo || '';
-                    const awayName = away.team.abbreviation;
-                    const homeName = home.team.abbreviation;
-                    const awayScore = away.score || '0';
-                    const homeScore = home.score || '0';
-                    const statusDetail = game.status.type.shortDetail || '';
-                    let awayClass = 'neutral';
-                    let homeClass = 'neutral';
-                    if (game.status.type.completed) {
-                        if (parseInt(awayScore) > parseInt(homeScore)) {
-                            awayClass = 'win';
-                            homeClass = 'lose';
-                        } else if (parseInt(homeScore) > parseInt(awayScore)) {
-                            homeClass = 'win';
-                            awayClass = 'lose';
+
+        function isWithinActiveHours(testDate=null) {
+            const now = new Date(testDate) || new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const currentTime = hours * 60 + minutes; // Convert to minutes since midnight
+
+            const eveningStart = 17 * 60 + 30;  // 5:30 PM in minutes
+            const morningEnd = 1 * 60 + 30;     // 1:30 AM in minutes
+
+            // Check if current time is between 5:30 PM and 1:30 AM
+            if (hours >= 17 && currentTime >= eveningStart) {
+                return true; // After 5:30 PM
+            } else if (hours < 2 && currentTime <= morningEnd) {
+                return true; // Before 1:30 AM
+            }
+            return false;
+        }
+
+        async function fetchAllGames() {
+            if (!isWithinActiveHours()) {
+                document.getElementById('scoreboard').innerHTML = '<div>Not Hyping until 5:30PM</div>';
+                return;
+            }
+            const API_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard";
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                let html = '';
+                if (!data.events || data.events.length === 0) {
+                    html = '<div>No NBA games found.</div>';
+                } else {
+                    // Separate and sort games
+                    let activeGames = [];
+                    let finalGames = [];
+                    for (const event of data.events) {
+                        const game = event.competitions[0];
+                        const statusType = game.status.type;
+                        const isFinal = statusType.completed;
+                        const startTime = new Date(game.date).getTime();
+                        const gameObj = { event, game, startTime, isFinal };
+                        if (isFinal) {
+                            finalGames.push(gameObj);
+                        } else {
+                            activeGames.push(gameObj);
                         }
                     }
-                    html += `
-                        <div class="game-card">
-                            <div class="teams">
-                                <div class="team">
-                                    <img class="team-logo" src="${awayLogo}" alt="${awayName} logo">
-                                    <span class="team-score ${awayClass}">${awayScore}</span>
-                                </div>
-                                <div class="team">
-                                    <img class="team-logo" src="${homeLogo}" alt="${homeName} logo">
-                                    <span class="team-score ${homeClass}">${homeScore}</span>
-                                </div>
-                            </div>
-                            <div class="status-detail">${statusDetail}</div>
+                    // Sort both arrays by start time ascending
+                    activeGames.sort((a, b) => a.startTime - b.startTime);
+                    finalGames.sort((a, b) => a.startTime - b.startTime);
+                    // Concatenate: active/upcoming first, finals last
+                    const sortedGames = [...activeGames, ...finalGames];
+
+                    for (const { game } of sortedGames) {
+                        const away = game.competitors.find(c => c.homeAway === 'away');
+                        const home = game.competitors.find(c => c.homeAway === 'home');
+                        const awayLogo = away.team.logo || '';
+                        const homeLogo = home.team.logo || '';
+                        const awayName = away.team.abbreviation;
+                        const homeName = home.team.abbreviation;
+                        const awayScore = away.score || '0';
+                        const homeScore = home.score || '0';
+                        const statusDetail = game.status.type.shortDetail || '';
+                        let awayClass = 'neutral';
+                        let homeClass = 'neutral';
+                        if (game.status.type.completed) {
+                            if (parseInt(awayScore) > parseInt(homeScore)) {
+                                awayClass = 'win';
+                                homeClass = 'lose';
+                            } else if (parseInt(homeScore) > parseInt(awayScore)) {
+                                homeClass = 'win';
+                                awayClass = 'lose';
+                            }
+                        }
+                        html += `
+                <div class="game-card">
+                    <div class="teams">
+                        <div class="team">
+                            <img class="team-logo" src="${awayLogo}" alt="${awayName} logo">
+                            <span class="team-score ${awayClass}">${awayScore}</span>
                         </div>
-                    `;
+                        <div class="team">
+                            <img class="team-logo" src="${homeLogo}" alt="${homeName} logo">
+                            <span class="team-score ${homeClass}">${homeScore}</span>
+                        </div>
+                    </div>
+                    <div class="status-detail">${statusDetail}</div>
+                </div>
+            `;
+                    }
                 }
+                document.getElementById('scoreboard').innerHTML = html;
+            } catch (err) {
+                document.getElementById('scoreboard').innerHTML = '<div>Error loading data.</div>';
             }
-            document.getElementById('scoreboard').innerHTML = html;
-        } catch (err) {
-            document.getElementById('scoreboard').innerHTML = '<div>Error loading data.</div>';
         }
-    }
-    fetchAllGames();
-    setInterval(fetchAllGames, 5000);
+        fetchAllGames();
+        setInterval(fetchAllGames, 5000);
     </script>
 </body>
 </html>
