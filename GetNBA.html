@@ -12,10 +12,11 @@
         }
         .scoreboard {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 32px;
             margin: 40px auto;
             width: 100%;
+            max-width: 1400px;
             box-sizing: border-box;
         }
 
@@ -29,6 +30,8 @@
             align-items: center;
             min-width: 0;
             max-width: 100%;
+            min-height: 160px;
+            height: auto;
         }
         .teams {
             width: 100%;
@@ -45,8 +48,8 @@
             margin: 0;
         }
         .team-logo {
-            width: 64px;
-            height: 64px;
+            width: 90px;
+            height: 90px;
             margin: 0 0 8px 0;
             border-radius: 8px;
             background: none;
@@ -58,6 +61,7 @@
             min-width: 48px;
             transition: color 0.3s;
             margin-top: 0;
+
         }
         .team-score.win {
             color: #26FF00;
@@ -71,21 +75,28 @@
         .status-detail {
             margin-top: 18px;
             font-size: 1.1em;
-            color: #FFD700;
             font-weight: bold;
             text-align: center;
+            color: #fff;
+            font-size: 24px;
+        }
+        .status-detail.in-progress {
+            color: #FFD700;
         }
     </style>
 </head>
 <body>
-    <h1>NBA Scoreboard - DC Hype</h1>
+    <h1 id="scoreboard-title">NBA Scoreboard - DC Hype</h1>
     <div id="scoreboard" class="scoreboard">
         Loading...
     </div>
 
     <script>
 
-        function isWithinActiveHours(testDate=null) {
+        function isWithinActiveHours(testDate=false) {
+            if (testDate) {
+                return true;
+            }
             const now = new Date(testDate) || new Date();
             const hours = now.getHours();
             const minutes = now.getMinutes();
@@ -105,14 +116,24 @@
 
         async function fetchAllGames() {
             if (!isWithinActiveHours()) {
-                document.getElementById('scoreboard').innerHTML = '<div>Not Hyping until 5:30PM</div>';
+                document.getElementById('scoreboard').innerHTML = '<div>Not Hyping until 12:30PM</div>';
                 return;
             }
             const API_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard";
             try {
                 const response = await fetch(API_URL);
                 const data = await response.json();
+                // Set title based on league abbreviation
+                let leagueAbbr = (data.leagues && data.leagues[0] && data.leagues[0].abbreviation) ? data.leagues[0].abbreviation : null;
+                if (leagueAbbr) {
+                    document.title = leagueAbbr + ' Scoreboard - DC Hype';
+                    document.getElementById('scoreboard-title').textContent = leagueAbbr + ' Scoreboard - DC Hype';
+                } else {
+                    document.title = 'Scoreboard - DC Hype';
+                    document.getElementById('scoreboard-title').textContent = 'Scoreboard - DC Hype';
+                }
                 let html = '';
+                let numGames = 0;
                 if (!data.events || data.events.length === 0) {
                     html = '<div>No NBA games found.</div>';
                 } else {
@@ -136,6 +157,7 @@
                     finalGames.sort((a, b) => a.startTime - b.startTime);
                     // Concatenate: active/upcoming first, finals last
                     const sortedGames = [...activeGames, ...finalGames];
+                    numGames = sortedGames.length;
 
                     for (const { game } of sortedGames) {
                         const away = game.competitors.find(c => c.homeAway === 'away');
@@ -149,6 +171,10 @@
                         const statusDetail = game.status.type.shortDetail || '';
                         let awayClass = 'neutral';
                         let homeClass = 'neutral';
+                        let statusClass = '';
+                        if (game.status.type.state === 'in') {
+                            statusClass = 'in-progress';
+                        }
                         if (game.status.type.completed) {
                             if (parseInt(awayScore) > parseInt(homeScore)) {
                                 awayClass = 'win';
@@ -170,18 +196,29 @@
                             <span class="team-score ${homeClass}">${homeScore}</span>
                         </div>
                     </div>
-                    <div class="status-detail">${statusDetail}</div>
+                    <div class="status-detail ${statusClass}">${statusDetail}</div>
                 </div>
             `;
                     }
                 }
                 document.getElementById('scoreboard').innerHTML = html;
+                // Dynamically set grid columns based on number of games
+                const scoreboard = document.getElementById('scoreboard');
+                let cols = 1;
+                if (numGames >= 4) {
+                    cols = 4;
+                } else if (numGames === 3) {
+                    cols = 3;
+                } else if (numGames === 2) {
+                    cols = 2;
+                }
+                scoreboard.style.gridTemplateColumns = `repeat(${cols}, minmax(260px, 1fr))`;
             } catch (err) {
                 document.getElementById('scoreboard').innerHTML = '<div>Error loading data.</div>';
             }
         }
         fetchAllGames();
-        setInterval(fetchAllGames, 5000);
+        setInterval(fetchAllGames, 10000);
     </script>
 </body>
 </html>
