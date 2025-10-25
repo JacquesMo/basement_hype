@@ -16,7 +16,6 @@
             font-family: Arial, sans-serif;
             text-align: center;
             min-height: 100vh;
-            max-height: 105vh;
             min-width: 95vw;
         }
         .main-content {
@@ -29,10 +28,10 @@
         #scoreboard-title {
             font-size: 3.2em;
             font-weight: 900;
-            margin-top: 24px;
-            margin-bottom: 16px;
+            margin-top: 12px;
+            margin-bottom: 0px;
             letter-spacing: 2px;
-            text-shadow: 0 4px 24px #000, 0 1px 0 #fff;
+            text-shadow: 0 4px 12px #000, 0 1px 0 #fff;
             z-index: 10;
         }
         .scoreboard {
@@ -176,16 +175,24 @@
                 document.getElementById('scoreboard').innerHTML = '<div>Not Hyping until 12:30PM</div>';
                 return;
             }
-            //const API_URL = "https://site.api.espn.com/apis/site/v2/sports/hockey/ncaa/scoreboard";
-            //const API_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard";
-            //const API_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
-            const API_URL = "https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard";
+                        let API_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard";
+                        //let API_URL = "https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard";
+                        const now = new Date();
+                        const month = now.getMonth(); // 0=Jan, 8=Sep, 11=Dec
+                        const isNFLSeason = (month >= 8 || month <= 0); // Sep-Jan
+                        if (now.getDay() === 0 && isNFLSeason) { // Sunday and NFL season
+                            API_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
+                        }
             try {
                 const response = await fetch(API_URL);
                 const data = await response.json();
                 // Set title based on league abbreviation
                 let leagueAbbr = (data.leagues && data.leagues[0] && data.leagues[0].abbreviation) ? data.leagues[0].abbreviation : null;
-                if (leagueAbbr) {
+                let leagueLogo = (data.leagues && data.leagues[0] && data.leagues[0].logos && data.leagues[0].logos[0] && data.leagues[0].logos[0].href) ? data.leagues[0].logos[0].href : null;
+                if (leagueLogo) {
+                    document.title = (leagueAbbr ? leagueAbbr : '') + ' Scoreboard - DC Hype';
+                    document.getElementById('scoreboard-title').innerHTML = `<img src="${leagueLogo}" alt="${leagueAbbr} logo" style="height:90px;vertical-align:middle;margin-right:12px;">${leagueAbbr ? leagueAbbr : ''} Scoreboard - DC Hype`;
+                } else if (leagueAbbr) {
                     document.title = leagueAbbr + ' Scoreboard - DC Hype';
                     document.getElementById('scoreboard-title').textContent = leagueAbbr + ' Scoreboard - DC Hype';
                 } else {
