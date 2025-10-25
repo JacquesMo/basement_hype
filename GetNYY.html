@@ -1,0 +1,161 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MLB Scoreboard - District Hype</title>
+    <style>
+        body {
+            background: #222;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        #scoreboard-title {
+            font-size: 2.8em;
+            font-weight: bold;
+            margin-top: 32px;
+            margin-bottom: 24px;
+            letter-spacing: 2px;
+            text-shadow: 0 4px 24px #000, 0 1px 0 #fff;
+        }
+        .scoreboard {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 900px;
+        }
+        .game-card {
+            background: rgba(90, 146, 163, 0.292);
+            border-radius: 24px;
+            padding: 24px 16px 20px 16px;
+            box-shadow: 0 8px 32px 0 rgba(0,0,0,0.37);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 0;
+            max-width: 100%;
+            min-height: 120px;
+            height: auto;
+            border: 1.5px solid rgba(255, 255, 255, 0.108);
+        }
+        .status-detail {
+            margin-top: 18px;
+            font-size: 1.2em;
+            font-weight: bold;
+            text-align: center;
+            color: #fff;
+        }
+        .linescore-table {
+            margin-top: 18px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .linescore-table th, .linescore-table td {
+            border: 1px solid #444;
+            padding: 6px 10px;
+            font-size: 1em;
+        }
+        .linescore-table th {
+            background: #333;
+            color: #FFD700;
+        }
+        .linescore-table td {
+            background: #222;
+            color: #fff;
+        }
+        .update-time {
+            margin-top: 12px;
+            font-size: 0.95em;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="scoreboard-title">MLB Scoreboard - District Hype</h1>
+    <div id="scoreboard" class="scoreboard">
+        Loading...
+    </div>
+    <script>
+        const TEAM_ABBREVIATION = 'LAD'; // Change to your team
+        const API_URL = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard";
+        async function fetchAndFindGame() {
+            try {
+                const response = await fetch(API_URL);
+                const json_data = await response.json();
+                for (const event of json_data.events) {
+                    const comp = event.competitions[0];
+                    if (comp.competitors.some(c => c.team.abbreviation === TEAM_ABBREVIATION)) {
+                        return comp;
+                    }
+                }
+            } catch (e) {
+                return null;
+            }
+            return null;
+        }
+        function renderScoreboard(game) {
+            const scoreboard = document.getElementById('scoreboard');
+            if (!game) {
+                scoreboard.innerHTML = `<div class="game-card"><div class="status-detail">No Game Today for ${TEAM_ABBREVIATION}<br>And The Mets Still Suck</div></div>`;
+                return;
+            }
+            const status = game.status?.type || {};
+            const status_name = status.name;
+            const status_detail = status.shortDetail || 'TBD';
+            const competitors = game.competitors || [];
+            const away = competitors.find(c => c.homeAway === 'away') || {};
+            const home = competitors.find(c => c.homeAway === 'home') || {};
+            const away_team = away.team?.abbreviation || 'AWAY';
+            const home_team = home.team?.abbreviation || 'HOME';
+            let html = `<div class="game-card">
+                <div style="font-size:2em;font-weight:bold;">${away_team} @ ${home_team}</div>
+                <div class="status-detail">${status_detail}</div>`;
+            if (status_name === 'STATUS_SCHEDULED') {
+                // Pre-game odds
+                let away_odds = 'N/A', home_odds = 'N/A';
+                const odds = game.odds?.[0] || {};
+                away_odds = odds.details || 'N/A';
+                home_odds = odds.overUnder || 'N/A';
+                html += `<div style="margin-top:18px;font-size:1.1em;">Odds: <span style="color:#FFD700;">${away_team}: ${away_odds}</span> | <span style="color:#FFD700;">${home_team}: ${home_odds}</span></div>`;
+                // Starting pitchers
+                const away_pitcher = away.probables?.[0]?.athlete?.displayName || 'N/A';
+                const home_pitcher = home.probables?.[0]?.athlete?.displayName || 'N/A';
+                html += `<div style="margin-top:12px;font-size:1.1em;">Starters: <span style="color:#26FF00;">${away_team}: ${away_pitcher}</span> | <span style="color:#26FF00;">${home_team}: ${home_pitcher}</span></div>`;
+            } else {
+                // Linescore table
+                html += renderLinescoreTable(away, home);
+            }
+            html += `<div class="update-time">Last Updated: ${new Date().toLocaleTimeString()}</div></div>`;
+            scoreboard.innerHTML = html;
+        }
+        function renderLinescoreTable(away, home) {
+            const innings = Array.from({length: 9}, (_, i) => (i+1).toString());
+            let away_scores = away.linescores || [];
+            let home_scores = home.linescores || [];
+            let html = `<table class="linescore-table"><thead><tr><th></th>`;
+            for (const inn of innings) html += `<th>${inn}</th>`;
+            html += `<th>R</th><th>H</th><th>E</th></tr></thead><tbody>`;
+            html += `<tr><td>${away.team?.abbreviation || 'AWAY'}</td>`;
+            for (let i=0; i<9; i++) html += `<td>${away_scores[i]?.value ?? ''}</td>`;
+            html += `<td>${away.score ?? ''}</td><td>${away.hits ?? ''}</td><td>${away.errors ?? ''}</td></tr>`;
+            html += `<tr><td>${home.team?.abbreviation || 'HOME'}</td>`;
+            for (let i=0; i<9; i++) html += `<td>${home_scores[i]?.value ?? ''}</td>`;
+            html += `<td>${home.score ?? ''}</td><td>${home.hits ?? ''}</td><td>${home.errors ?? ''}</td></tr>`;
+            html += `</tbody></table>`;
+            return html;
+        }
+        async function updateScoreboard() {
+            const game = await fetchAndFindGame();
+            renderScoreboard(game);
+        }
+        updateScoreboard();
+        setInterval(updateScoreboard, 60000);
+    </script>
+</body>
+</html>
