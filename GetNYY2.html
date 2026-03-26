@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLB Ultimate Scoreboard - District Hype</title>
+    <style>
+        :root {
+            --bg-color: #2f2f2f;
+            --card-bg: #121212;
+            --accent: #007bff;
+            --text-dim: #888;
+            --live-red: #ff3b30;
+            --success: #34c759;
+            --warning: #ffcc00;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: #fff;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* Prevents scrollbars on dedicated monitors */
+        }
+
+        #scoreboard-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin: 10px 0 20px 0;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            text-shadow: 0 0 20px rgba(255,255,255,0.1);
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Hero Game Card */
+        .game-card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            border: 1px solid #333;
+            position: relative;
+        }
+
+        .live-indicator {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--live-red);
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 1rem;
+        }
+
+        .pulse {
+            width: 10px;
+            height: 10px;
+            background: var(--live-red);
+            border-radius: 50%;
+            animation: pulse-animation 1.5s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+        }
+
+        .matchup-header {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .team-box { display: flex; flex-direction: column; align-items: center; }
+        .team-logo { width: 100px; height: 100px; margin-bottom: 10px; }
+        .team-name { font-size: 2.2rem; color: var(--text-dim); font-weight: bold; }
+        .score-large { font-size: 5rem; font-weight: 900; line-height: 1; margin-top: 10px; }
+
+        .game-info-center { text-align: center; }
+        .period-text { font-size: 1.8rem; font-weight: bold; color: var(--warning); display: block; }
+        
+        /* Outs and Count */
+        .outs-dots { 
+            display: flex; 
+            justify-content: center; 
+            gap: 8px; 
+            margin-top: 0px; /* Reduced to pull closer to diamond */
+        }
+        .dot { width: 14px; height: 14px; border-radius: 50%; background: #333; border: 1px solid #444; }
+        .dot.active { background: var(--warning); border-color: var(--warning); box-shadow: 0 0 8px var(--warning); }
+
+        /* Diamond Graphic */
+        .diamond-container {
+            width: 70px;
+            height: 70px;
+            margin: 30px auto 5px auto; /* Reduced bottom margin */
+            position: relative;
+            transform: rotate(45deg);
+        }
+        .base {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #333;
+            border: 4px solid #555;
+        }
+        .base.occupied { background: var(--warning); border-color: #1a1a1a; box-shadow: 0 0 5px var(--warning); }
+        .b-1 { top: 0; right: 0; }
+        .b-2 { top: 0; left: 0; }
+        .b-3 { bottom: 0; left: 0; }
+
+        /* Situation Bar (Batter/Pitcher) */
+        .situation-bar {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 16px;
+            margin-top: 25px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        .situ-label { color: var(--text-dim); display: block; margin-bottom: 6px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+        .situ-value { font-size: 1.4rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* Table Styles */
+        .table-container { margin-top: 30px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { 
+            color: var(--text-dim); 
+            font-size: 1.75rem; 
+            padding: 12px; 
+            border-bottom: 3px solid #333;
+            text-align: center; /* Centered headers */
+        }
+        td { 
+            padding: 15px 12px; 
+            font-size: 1.5rem; 
+            font-weight: bold; 
+            border-bottom: 1px solid #2a2a2a;
+            text-align: center; /* Centered values */
+        }
+        .total-col { background: rgba(255,255,255,0.05); color: var(--warning); font-size: 1.8rem; }
+
+        /* Bottom Ticker */
+        .ticker-wrap {
+            background: #000;
+            padding: 15px;
+            border-radius: 50px;
+            font-size: 1.85rem;
+            color: #ccc;
+            white-space: nowrap;
+            overflow: hidden;
+            border: 1px solid #333;
+            margin-top: auto;
+            margin-bottom: 10px;
+        }
+        .ticker-move {
+            display: inline-block;
+            animation: ticker 60s linear infinite;
+        }
+        @keyframes ticker {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        .ticker-item { margin-right: 60px; font-weight: bold; }
+        .ticker-score { color: var(--warning); }
+
+        .refresh-tag { margin-top: 10px; font-size: 0.8rem; color: #555; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1 id="scoreboard-title">District Hype</h1>
+    
+    <div class="main-container">
+        <div id="hero-game" class="game-card">
+            <div style="padding: 60px; font-size: 1.5rem; text-align:center;">Connecting to MLB data feed...</div>
+        </div>
+
+        <div class="ticker-wrap">
+            <div id="league-ticker" class="ticker-move">
+                Loading league scores...
+            </div>
+        </div>
+    </div>
+
+    <div class="refresh-tag" id="refresh-time"></div>
+
+    <script>
+        const MY_TEAM = 'LAD'; 
+        const API_URL = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard";
+
+        async function updateDashboard() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                const mainGame = data.events.find(e => 
+                    e.competitions[0].competitors.some(c => c.team.abbreviation === MY_TEAM)
+                );
+
+                renderHero(mainGame);
+                renderTicker(data.events);
+                document.getElementById('refresh-time').innerText = `Last Update: ${new Date().toLocaleTimeString()}`;
+            } catch (e) {
+                console.error("Dashboard error:", e);
+            }
+        }
+
+        function renderHero(event) {
+            const container = document.getElementById('hero-game');
+            if (!event) {
+                container.innerHTML = `<div style="text-align:center; padding:80px;">
+                    <h2 style="font-size: 3rem; margin:0">No ${MY_TEAM} Game Today</h2>
+                    <p style="color:#888; font-size: 1.5rem; margin-top:20px;">The Mets still suck.</p>
+                </div>`;
+                return;
+            }
+
+            const comp = event.competitions[0];
+            const status = comp.status;
+            const state = status.type.state; 
+            const away = comp.competitors.find(c => c.homeAway === 'away');
+            const home = comp.competitors.find(c => c.homeAway === 'home');
+
+            let html = '';
+
+            if (state === 'in') {
+                html += `<div class="live-indicator"><div class="pulse"></div>LIVE</div>`;
+            }
+
+            html += `
+                <div class="matchup-header">
+                    <div class="team-box">
+                        <img class="team-logo" src="${away.team.logo}" alt="away">
+                        <span class="team-name">${away.team.abbreviation}</span>
+                        <div class="score-large">${away.score}</div>
+                    </div>
+                    <div class="game-info-center">
+                        <span class="period-text">${status.type.shortDetail}</span>
+                        ${state === 'in' ? renderDiamond(comp.situation) : ''}
+                        ${state === 'in' ? renderOuts(comp.situation?.outs) : ''}
+                    </div>
+                    <div class="team-box">
+                        <img class="team-logo" src="${home.team.logo}" alt="home">
+                        <span class="team-name">${home.team.abbreviation}</span>
+                        <div class="score-large">${home.score}</div>
+                    </div>
+                </div>
+            `;
+
+            if (state === 'in' && comp.situation) {
+                const situ = comp.situation;
+                
+                // Determine which team is at bat and pitching based on situation team ID
+                const atBatTeamId = situ.team?.id;
+                const batTeam = atBatTeamId === home.team.id ? home.team.abbreviation : away.team.abbreviation;
+                const pitTeam = atBatTeamId === home.team.id ? away.team.abbreviation : home.team.abbreviation;
+
+                html += `
+                    <div class="situation-bar">
+                        <div>
+                            <span class="situ-label">At Bat</span>
+                            <div class="situ-value">
+                                ${situ.batter?.athlete?.displayName || '---'} 
+                                <span style="font-size: 0.9rem; color: var(--text-dim);">(${batTeam})</span>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="situ-label">Pitching</span>
+                            <div class="situ-value">
+                                ${situ.pitcher?.athlete?.displayName || '---'} 
+                                <span style="font-size: 0.9rem; color: var(--text-dim);">(${pitTeam})</span>
+                            </div>
+                        </div>
+                        <div style="margin-top:10px">
+                            <span class="situ-label">Count</span>
+                            <div class="situ-value">${situ.balls}-${situ.strikes}</div>
+                        </div>
+                        <div style="margin-top:10px">
+                            <span class="situ-label">Last Play</span>
+                            <div class="situ-value" style="font-size:1.1rem; color: #ccc;">${situ.lastPlay?.text || ''}</div>
+                        </div>
+                    </div>
+                `;
+            } else if (state === 'pre') {
+                const odds = comp.odds?.[0]?.details || 'TBD';
+                const ou = comp.odds?.[0]?.overUnder || 'TBD';
+                html += `
+                    <div class="situation-bar" style="grid-template-columns: 1fr 1fr 1fr;">
+                        <div><span class="situ-label">Line</span><div class="situ-value">${odds}</div></div>
+                        <div><span class="situ-label">O/U</span><div class="situ-value">${ou}</div></div>
+                        <div><span class="situ-label">TV</span><div class="situ-value">${comp.broadcasts?.[0]?.names?.[0] || 'N/A'}</div></div>
+                    </div>
+                `;
+            } else if (state === 'post') {
+                const winner = comp.notes?.find(n => n.type === 'winner')?.text || '';
+                html += `
+                    <div class="situation-bar" style="grid-template-columns: 1fr;">
+                        <div style="text-align:center">
+                            <span class="situ-label">Game Final</span>
+                            <div class="situ-value">${winner || 'Game Completed'}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += renderLinescore(away, home);
+            container.innerHTML = html;
+        }
+
+        function renderDiamond(situation) {
+            if (!situation) return '';
+            return `
+                <div class="diamond-container">
+                    <div class="base b-2 ${situation.onSecond ? 'occupied' : ''}"></div>
+                    <div class="base b-1 ${situation.onFirst ? 'occupied' : ''}"></div>
+                    <div class="base b-3 ${situation.onThird ? 'occupied' : ''}"></div>
+                </div>
+            `;
+        }
+
+        function renderOuts(outs) {
+            if (outs === undefined) return '';
+            return `
+                <div class="outs-dots">
+                    <div class="dot ${outs >= 1 ? 'active' : ''}"></div>
+                    <div class="dot ${outs >= 2 ? 'active' : ''}"></div>
+                </div>
+            `;
+        }
+
+        function renderLinescore(away, home) {
+            const awayL = away.linescores || [];
+            const homeL = home.linescores || [];
+            const innings = Math.max(9, awayL.length);
+
+            let tableHtml = `
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="text-align:left">TEAM</th>
+                                ${Array.from({length: innings}, (_, i) => `<th>${i+1}</th>`).join('')}
+                                <th class="total-col">R</th>
+                                <th class="total-col">H</th>
+                                <th class="total-col">E</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="text-align:left">${away.team.abbreviation}</td>
+                                ${Array.from({length: innings}, (_, i) => `<td>${awayL[i]?.value ?? ''}</td>`).join('')}
+                                <td class="total-col">${away.score}</td>
+                                <td class="total-col">${getStat(away, 'hits')}</td>
+                                <td class="total-col">${getStat(away, 'errors')}</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align:left">${home.team.abbreviation}</td>
+                                ${Array.from({length: innings}, (_, i) => `<td>${homeL[i]?.value ?? ''}</td>`).join('')}
+                                <td class="total-col">${home.score}</td>
+                                <td class="total-col">${getStat(home, 'hits')}</td>
+                                <td class="total-col">${getStat(home, 'errors')}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>`;
+            return tableHtml;
+        }
+
+        function getStat(team, name) {
+            return team.statistics?.find(s => s.name === name)?.displayValue || 0;
+        }
+
+        function renderTicker(events) {
+            const ticker = document.getElementById('league-ticker');
+            const items = events
+                .filter(e => e.competitions[0].competitors.every(c => c.team.abbreviation !== MY_TEAM))
+                .map(e => {
+                    const c = e.competitions[0];
+                    const a = c.competitors.find(t => t.homeAway === 'away');
+                    const h = c.competitors.find(t => t.homeAway === 'home');
+                    return `<span class="ticker-item">${a.team.abbreviation} <span class="ticker-score">${a.score}</span> @ ${h.team.abbreviation} <span class="ticker-score">${h.score}</span> <span style="font-size: 0.7em; color: #666;">(${c.status.type.shortDetail})</span></span>`;
+                });
+            
+            ticker.innerHTML = items.length > 0 ? items.join('') + items.join('') : "No other games in progress.";
+        }
+
+        updateDashboard();
+        setInterval(updateDashboard, 5000); 
+    </script>
+</body>
+</html>

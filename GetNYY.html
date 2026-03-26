@@ -82,7 +82,7 @@
         Loading...
     </div>
     <script>
-        const TEAM_ABBREVIATION = 'LAD'; // Change to your team
+        const TEAM_ABBREVIATION = 'STL'; // Change to your team
         const API_URL = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard";
         async function fetchAndFindGame() {
             try {
@@ -155,7 +155,7 @@
             renderScoreboard(game);
         }
         updateScoreboard();
-        setInterval(updateScoreboard, 60000);
+        setInterval(updateScoreboard, 5000);
     </script>
 </body>
 </html>
