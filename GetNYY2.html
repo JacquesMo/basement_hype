@@ -177,7 +177,7 @@
         .situ-label { color: var(--text-dim); display: block; margin-bottom: 6px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
         .situ-value { font-size: 1.4rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .performer-name { font-size: 1.1rem; font-weight: bold; }
-        .performer-stat { color: var(--warning); font-size: 0.95rem; margin-left: 8px; }
+        .performer-stat { color: var(--warning); font-size: 0.95rem; margin-left: 8px; font-weight: 800; }
         .performer-cat { font-size: 0.7rem; color: #555; text-transform: uppercase; vertical-align: middle; margin-right: 5px; min-width: 32px; display: inline-block; }
 
         /* Table Styles */
@@ -266,7 +266,6 @@
         }
 
         function getTeamPerformers(team) {
-            // Find AVG and RBI categories
             const avgCat = team.leaders?.find(l => 
                 l.name.toLowerCase().includes('avg') || 
                 l.shortDisplayName.toLowerCase() === 'avg'
@@ -275,10 +274,17 @@
                 l.name.toLowerCase().includes('rbi') || 
                 l.shortDisplayName.toLowerCase() === 'rbi'
             );
+            
+            const kCat = team.leaders?.find(l => 
+                l.name.toLowerCase().includes('strikeouts') || 
+                l.shortDisplayName.toLowerCase() === 'k' ||
+                l.displayName.toLowerCase().includes('strikeouts')
+            );
 
             return {
                 avgLeader: avgCat ? { ...avgCat.leaders[0], category: 'AVG' } : null,
-                rbiLeader: rbiCat ? { ...rbiCat.leaders[0], category: 'RBI' } : null
+                rbiLeader: rbiCat ? { ...rbiCat.leaders[0], category: 'RBI' } : null,
+                kLeader: kCat ? { ...kCat.leaders[0], category: 'K' } : null
             };
         }
 
@@ -333,10 +339,19 @@
                 const pitTeam = atBatTeamId === home.team.id ? away.team.abbreviation : home.team.abbreviation;
 
                 const batterStats = situ.batter?.summary || '---';
-                const pitcherStats = situ.pitcher?.summary || '---';
-                const lastPlayText = situ.lastPlay?.text || '---';
+                let pitcherSummary = situ.pitcher?.summary || '---';
                 
-                // Get Network / TV data
+                // Specifically extract strikeouts (K) for the current live pitcher
+                const pitcherLiveKs = situ.pitcher?.statistics?.find(s => s.name === 'strikeouts' || s.abbreviation === 'K')?.displayValue;
+                
+                // Clean the summary if it already contains K info to avoid "5 K (5 K, 5.0 IP)"
+                if (pitcherLiveKs && pitcherSummary.includes(`${pitcherLiveKs} K`)) {
+                    pitcherSummary = pitcherSummary.replace(`${pitcherLiveKs} K`, '').replace(/^, |, $/, '').replace(/, ,/, ',');
+                }
+                
+                const pitcherDisplayStats = pitcherLiveKs ? `${pitcherLiveKs} K (${pitcherSummary})` : pitcherSummary;
+
+                const lastPlayText = situ.lastPlay?.text || '---';
                 const networks = comp.broadcasts?.[0]?.names?.join(', ') || 'N/A';
 
                 html += `
@@ -361,7 +376,7 @@
                         </div>
                         <div>
                             <span class="situ-label">Pitcher Stats Today</span>
-                            <div class="situ-value" style="color: var(--warning);">${pitcherStats}</div>
+                            <div class="situ-value" style="color: var(--warning);">${pitcherDisplayStats}</div>
                         </div>
                         <div style="border-top: 1px solid #333; padding-top: 10px;">
                             <span class="situ-label">Last Play</span>
@@ -397,24 +412,30 @@
                 const awayPerf = getTeamPerformers(away);
                 const homePerf = getTeamPerformers(home);
 
-                const renderLeaderRow = (performer) => `
-                    <div class="performer-row">
-                        <span class="performer-name"><span class="performer-cat">${performer?.category || ''}</span>${performer?.athlete?.shortName || '---'}</span>
-                        <span class="performer-stat">${performer?.displayValue || ''}</span>
-                    </div>
-                `;
+                const renderLeaderRow = (performer) => {
+                    if (!performer) return '';
+                    const isK = performer.category === 'K';
+                    return `
+                        <div class="performer-row">
+                            <span class="performer-name"><span class="performer-cat">${isK ? '' : performer.category}</span>${performer.athlete?.shortName || '---'}</span>
+                            <span class="performer-stat">${performer.displayValue}${isK ? ' K' : ''}</span>
+                        </div>
+                    `;
+                };
 
                 html += `
                     <div class="performers-section">
                         <div class="team-performers-card">
-                            <span class="situ-label">${away.team.abbreviation} STAT LEADERS</span>
+                            <span class="situ-label">${away.team.abbreviation} LEADERS</span>
                             ${renderLeaderRow(awayPerf.avgLeader)}
                             ${renderLeaderRow(awayPerf.rbiLeader)}
+                            ${renderLeaderRow(awayPerf.kLeader)}
                         </div>
                         <div class="team-performers-card">
-                            <span class="situ-label">${home.team.abbreviation} STAT LEADERS</span>
+                            <span class="situ-label">${home.team.abbreviation} LEADERS</span>
                             ${renderLeaderRow(homePerf.avgLeader)}
                             ${renderLeaderRow(homePerf.rbiLeader)}
+                            ${renderLeaderRow(homePerf.kLeader)}
                         </div>
                     </div>
                 `;
