@@ -6,9 +6,9 @@
     <title>MLB Ultimate Scoreboard - District Hype</title>
     <style>
         :root {
-            --bg-color: #2f2f2f;
+            --bg-color: #4a4a4a;
             --card-bg: #121212;
-            --accent: #007bff;
+            --accent: #0033be;
             --text-dim: #888;
             --live-red: #ff3b30;
             --success: #34c759;
@@ -39,7 +39,7 @@
 
         .main-container {
             width: 100%;
-            max-width: 1100px;
+            max-width: 1300px; /* Increased width from 1100px */
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -233,7 +233,7 @@
     <div class="refresh-tag" id="refresh-time"></div>
 
     <script>
-        const MY_TEAM = 'NYY'; 
+        const MY_TEAM = 'LAD'; 
         const API_URL = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard";
 
         async function updateDashboard() {
