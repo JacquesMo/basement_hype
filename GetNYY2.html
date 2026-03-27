@@ -6,9 +6,9 @@
     <title>MLB Ultimate Scoreboard - District Hype</title>
     <style>
         :root {
-            --bg-color: #4a4a4a;
+            --bg-color: #2f2f2f;
             --card-bg: #121212;
-            --accent: #0033be;
+            --accent: #007bff;
             --text-dim: #888;
             --live-red: #ff3b30;
             --success: #34c759;
@@ -39,7 +39,7 @@
 
         .main-container {
             width: 100%;
-            max-width: 1300px; /* Increased width from 1100px */
+            max-width: 1300px; 
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -107,6 +107,18 @@
         .dot { width: 14px; height: 14px; border-radius: 50%; background: #333; border: 1px solid #444; }
         .dot.active { background: var(--warning); border-color: var(--warning); box-shadow: 0 0 8px var(--warning); }
 
+        .live-count-display {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: #fff;
+            margin-top: 8px;
+            letter-spacing: 2px;
+            background: rgba(255,255,255,0.05);
+            padding: 2px 10px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
         /* Diamond Graphic */
         .diamond-container {
             width: 70px;
@@ -135,7 +147,7 @@
             margin-top: 25px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 25px;
+            gap: 15px 25px;
         }
 
         /* Performers Section */
@@ -233,7 +245,7 @@
     <div class="refresh-tag" id="refresh-time"></div>
 
     <script>
-        const MY_TEAM = 'NYY'; 
+        const MY_TEAM = 'LAD'; 
         const API_URL = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard";
 
         async function updateDashboard() {
@@ -292,6 +304,7 @@
                 html += `<div class="live-indicator"><div class="pulse"></div>LIVE</div>`;
             }
 
+            // Matchup Header
             html += `
                 <div class="matchup-header">
                     <div class="team-box">
@@ -303,6 +316,7 @@
                         <span class="period-text">${status.type.shortDetail}</span>
                         ${state === 'in' ? renderDiamond(comp.situation) : ''}
                         ${state === 'in' ? renderOuts(comp.situation?.outs) : ''}
+                        ${state === 'in' ? `<div class="live-count-display">${comp.situation?.balls || 0}-${comp.situation?.strikes || 0}</div>` : ''}
                     </div>
                     <div class="team-box">
                         <img class="team-logo" src="${home.team.logo}" alt="home">
@@ -317,6 +331,13 @@
                 const atBatTeamId = situ.team?.id;
                 const batTeam = atBatTeamId === home.team.id ? home.team.abbreviation : away.team.abbreviation;
                 const pitTeam = atBatTeamId === home.team.id ? away.team.abbreviation : home.team.abbreviation;
+
+                const batterStats = situ.batter?.summary || '---';
+                const pitcherStats = situ.pitcher?.summary || '---';
+                const lastPlayText = situ.lastPlay?.text || '---';
+                
+                // Get Network / TV data
+                const networks = comp.broadcasts?.[0]?.names?.join(', ') || 'N/A';
 
                 html += `
                     <div class="situation-bar">
@@ -334,13 +355,21 @@
                                 <span style="font-size: 0.9rem; color: var(--text-dim);">(${pitTeam})</span>
                             </div>
                         </div>
-                        <div style="margin-top:10px">
-                            <span class="situ-label">Count</span>
-                            <div class="situ-value">${situ.balls}-${situ.strikes}</div>
+                        <div>
+                            <span class="situ-label">Batter Stats Today</span>
+                            <div class="situ-value" style="color: var(--warning);">${batterStats}</div>
                         </div>
-                        <div style="margin-top:10px">
+                        <div>
+                            <span class="situ-label">Pitcher Stats Today</span>
+                            <div class="situ-value" style="color: var(--warning);">${pitcherStats}</div>
+                        </div>
+                        <div style="border-top: 1px solid #333; padding-top: 10px;">
                             <span class="situ-label">Last Play</span>
-                            <div class="situ-value" style="font-size:1.1rem; color: #ccc;">${situ.lastPlay?.text || ''}</div>
+                            <div class="situ-value" style="font-size: 1.5rem; white-space: normal; color: #ccc;">${lastPlayText}</div>
+                        </div>
+                        <div style="border-top: 1px solid #333; padding-top: 10px;">
+                            <span class="situ-label">Network</span>
+                            <div class="situ-value" style="color: #fff;">${networks}</div>
                         </div>
                     </div>
                 `;
@@ -365,7 +394,6 @@
                     </div>
                 `;
                 
-                // ONLY show the leaders box when the game is FINAL (state === 'post')
                 const awayPerf = getTeamPerformers(away);
                 const homePerf = getTeamPerformers(home);
 
