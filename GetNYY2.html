@@ -92,7 +92,7 @@
         .team-box { display: flex; flex-direction: column; align-items: center; }
         .team-logo { width: 100px; height: 100px; margin-bottom: 10px; }
         .team-name { font-size: 2.2rem; color: var(--text-dim); font-weight: bold; }
-        .score-large { font-size: 5rem; font-weight: 900; line-height: 1; margin-top: 10px; }
+        .score-large { font-size: 5rem; font-weight: 600; line-height: 1; margin-top: 10px; }
 
         .game-info-center { text-align: center; }
         .period-text { font-size: 1.8rem; font-weight: bold; color: var(--warning); display: block; }
@@ -102,7 +102,7 @@
             display: flex; 
             justify-content: center; 
             gap: 8px; 
-            margin-top: 0px; /* Reduced to pull closer to diamond */
+            margin-top: 0px; 
         }
         .dot { width: 14px; height: 14px; border-radius: 50%; background: #333; border: 1px solid #444; }
         .dot.active { background: var(--warning); border-color: var(--warning); box-shadow: 0 0 8px var(--warning); }
@@ -111,7 +111,7 @@
         .diamond-container {
             width: 70px;
             height: 70px;
-            margin: 30px auto 5px auto; /* Reduced bottom margin */
+            margin: 30px auto 5px auto; 
             position: relative;
             transform: rotate(45deg);
         }
@@ -137,8 +137,36 @@
             grid-template-columns: 1fr 1fr;
             gap: 25px;
         }
+
+        /* Performers Section */
+        .performers-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .team-performers-card {
+            background: #181818;
+            padding: 15px;
+            border-radius: 16px;
+            border: 1px solid #252525;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .performer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         .situ-label { color: var(--text-dim); display: block; margin-bottom: 6px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
         .situ-value { font-size: 1.4rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .performer-name { font-size: 1.1rem; font-weight: bold; }
+        .performer-stat { color: var(--warning); font-size: 0.95rem; margin-left: 8px; }
+        .performer-cat { font-size: 0.7rem; color: #555; text-transform: uppercase; vertical-align: middle; margin-right: 5px; min-width: 32px; display: inline-block; }
 
         /* Table Styles */
         .table-container { margin-top: 30px; overflow-x: auto; }
@@ -148,14 +176,14 @@
             font-size: 1.75rem; 
             padding: 12px; 
             border-bottom: 3px solid #333;
-            text-align: center; /* Centered headers */
+            text-align: center; 
         }
         td { 
             padding: 15px 12px; 
             font-size: 1.5rem; 
             font-weight: bold; 
             border-bottom: 1px solid #2a2a2a;
-            text-align: center; /* Centered values */
+            text-align: center; 
         }
         .total-col { background: rgba(255,255,255,0.05); color: var(--warning); font-size: 1.8rem; }
 
@@ -205,7 +233,7 @@
     <div class="refresh-tag" id="refresh-time"></div>
 
     <script>
-        const MY_TEAM = 'LAD'; 
+        const MY_TEAM = 'NYY'; 
         const API_URL = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard";
 
         async function updateDashboard() {
@@ -223,6 +251,23 @@
             } catch (e) {
                 console.error("Dashboard error:", e);
             }
+        }
+
+        function getTeamPerformers(team) {
+            // Find AVG and RBI categories
+            const avgCat = team.leaders?.find(l => 
+                l.name.toLowerCase().includes('avg') || 
+                l.shortDisplayName.toLowerCase() === 'avg'
+            );
+            const rbiCat = team.leaders?.find(l => 
+                l.name.toLowerCase().includes('rbi') || 
+                l.shortDisplayName.toLowerCase() === 'rbi'
+            );
+
+            return {
+                avgLeader: avgCat ? { ...avgCat.leaders[0], category: 'AVG' } : null,
+                rbiLeader: rbiCat ? { ...rbiCat.leaders[0], category: 'RBI' } : null
+            };
         }
 
         function renderHero(event) {
@@ -269,8 +314,6 @@
 
             if (state === 'in' && comp.situation) {
                 const situ = comp.situation;
-                
-                // Determine which team is at bat and pitching based on situation team ID
                 const atBatTeamId = situ.team?.id;
                 const batTeam = atBatTeamId === home.team.id ? home.team.abbreviation : away.team.abbreviation;
                 const pitTeam = atBatTeamId === home.team.id ? away.team.abbreviation : home.team.abbreviation;
@@ -318,6 +361,32 @@
                         <div style="text-align:center">
                             <span class="situ-label">Game Final</span>
                             <div class="situ-value">${winner || 'Game Completed'}</div>
+                        </div>
+                    </div>
+                `;
+                
+                // ONLY show the leaders box when the game is FINAL (state === 'post')
+                const awayPerf = getTeamPerformers(away);
+                const homePerf = getTeamPerformers(home);
+
+                const renderLeaderRow = (performer) => `
+                    <div class="performer-row">
+                        <span class="performer-name"><span class="performer-cat">${performer?.category || ''}</span>${performer?.athlete?.shortName || '---'}</span>
+                        <span class="performer-stat">${performer?.displayValue || ''}</span>
+                    </div>
+                `;
+
+                html += `
+                    <div class="performers-section">
+                        <div class="team-performers-card">
+                            <span class="situ-label">${away.team.abbreviation} STAT LEADERS</span>
+                            ${renderLeaderRow(awayPerf.avgLeader)}
+                            ${renderLeaderRow(awayPerf.rbiLeader)}
+                        </div>
+                        <div class="team-performers-card">
+                            <span class="situ-label">${home.team.abbreviation} STAT LEADERS</span>
+                            ${renderLeaderRow(homePerf.avgLeader)}
+                            ${renderLeaderRow(homePerf.rbiLeader)}
                         </div>
                     </div>
                 `;
