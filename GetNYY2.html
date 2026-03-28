@@ -7,7 +7,7 @@
     <style>
         :root {
             --bg-color: #2f2f2f;
-            --card-bg: #121212;
+            --card-bg: rgba(18, 18, 18, 0.67); /* Added transparency to show background slightly */
             --accent: #007bff;
             --text-dim: #888;
             --live-red: #ff3b30;
@@ -16,7 +16,14 @@
         }
 
         body {
-            background: var(--bg-color);
+            background-color: var(--bg-color);
+            /* Updated to use your local image in the same folder */
+            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('YankeesPro Sports Background.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            
             color: #fff;
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             margin: 0;
@@ -34,7 +41,7 @@
             margin: 10px 0 20px 0;
             letter-spacing: 5px;
             text-transform: uppercase;
-            text-shadow: 0 0 20px rgba(255,255,255,0.1);
+            text-shadow: 0 0 20px rgba(0,0,0,0.8);
         }
 
         .main-container {
@@ -50,9 +57,10 @@
             background: var(--card-bg);
             border-radius: 24px;
             padding: 30px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
             border: 1px solid #333;
             position: relative;
+            backdrop-filter: blur(10px); /* Adds a premium blur effect over the BG */
         }
 
         .live-indicator {
@@ -90,7 +98,18 @@
         }
 
         .team-box { display: flex; flex-direction: column; align-items: center; }
-        .team-logo { width: 100px; height: 100px; margin-bottom: 10px; }
+        
+        /* Updated with a hard white border for maximum visibility */
+        .team-logo { 
+            width: 100px; 
+            height: 100px; 
+            margin-bottom: 10px; 
+            filter: drop-shadow(1px 1px 0px #eeeeee) 
+                    drop-shadow(-1px -1px 0px #eeeeee) 
+                    drop-shadow(1px -1px 0px #eeeeee) 
+                    drop-shadow(-1px 1px 0px #eeeeee);
+        }
+
         .team-name { font-size: 2.2rem; color: var(--text-dim); font-weight: bold; }
         .score-large { font-size: 5rem; font-weight: 600; line-height: 1; margin-top: 10px; }
 
@@ -141,7 +160,7 @@
 
         /* Situation Bar (Batter/Pitcher) */
         .situation-bar {
-            background: #1e1e1e;
+            background: rgba(30, 30, 30, 0.6);
             padding: 20px;
             border-radius: 16px;
             margin-top: 25px;
@@ -159,13 +178,14 @@
         }
 
         .team-performers-card {
-            background: #181818;
+            background: rgba(24, 24, 24, 0.8);
             padding: 15px;
             border-radius: 16px;
             border: 1px solid #252525;
             display: flex;
             flex-direction: column;
             gap: 10px;
+            backdrop-filter: blur(5px);
         }
 
         .performer-row {
@@ -201,7 +221,7 @@
 
         /* Bottom Ticker */
         .ticker-wrap {
-            background: #000;
+            background: rgba(0, 0, 0, 0.8);
             padding: 15px;
             border-radius: 50px;
             font-size: 1.85rem;
@@ -211,6 +231,7 @@
             border: 1px solid #333;
             margin-top: auto;
             margin-bottom: 10px;
+            backdrop-filter: blur(5px);
         }
         .ticker-move {
             display: inline-block;
@@ -223,7 +244,7 @@
         .ticker-item { margin-right: 60px; font-weight: bold; }
         .ticker-score { color: var(--warning); }
 
-        .refresh-tag { margin-top: 10px; font-size: 0.8rem; color: #555; font-weight: bold; }
+        .refresh-tag { margin-top: 10px; font-size: 0.8rem; color: #aaa; font-weight: bold; text-shadow: 0 1px 2px #000; }
     </style>
 </head>
 <body>
@@ -293,7 +314,7 @@
             if (!event) {
                 container.innerHTML = `<div style="text-align:center; padding:80px;">
                     <h2 style="font-size: 3rem; margin:0">No ${MY_TEAM} Game Today</h2>
-                    <p style="color:#888; font-size: 1.5rem; margin-top:20px;">The Mets still suck.</p>
+                    <p style="color:#eee; font-size: 1.5rem; margin-top:20px; text-shadow: 0 2px 4px #000;">The Mets still suck.</p>
                 </div>`;
                 return;
             }
@@ -316,7 +337,7 @@
                     <div class="team-box">
                         <img class="team-logo" src="${away.team.logo}" alt="away">
                         <span class="team-name">${away.team.abbreviation}</span>
-                        <div class="score-large">${away.score}</div>
+                        <div class="score-large">${state === 'pre' ? '' : away.score}</div>
                     </div>
                     <div class="game-info-center">
                         <span class="period-text">${status.type.shortDetail}</span>
@@ -327,7 +348,7 @@
                     <div class="team-box">
                         <img class="team-logo" src="${home.team.logo}" alt="home">
                         <span class="team-name">${home.team.abbreviation}</span>
-                        <div class="score-large">${home.score}</div>
+                        <div class="score-large">${state === 'pre' ? '' : home.score}</div>
                     </div>
                 </div>
             `;
@@ -341,16 +362,14 @@
                 const batterStats = situ.batter?.summary || '---';
                 let pitcherSummary = situ.pitcher?.summary || '---';
                 
-                // Specifically extract strikeouts (K) for the current live pitcher
                 const pitcherLiveKs = situ.pitcher?.statistics?.find(s => s.name === 'strikeouts' || s.abbreviation === 'K')?.displayValue;
+                const hasLiveKs = (pitcherLiveKs !== undefined && pitcherLiveKs !== null);
                 
-                // Clean the summary if it already contains K info to avoid "5 K (5 K, 5.0 IP)"
-                if (pitcherLiveKs && pitcherSummary.includes(`${pitcherLiveKs} K`)) {
+                if (hasLiveKs && pitcherSummary.includes(`${pitcherLiveKs} K`)) {
                     pitcherSummary = pitcherSummary.replace(`${pitcherLiveKs} K`, '').replace(/^, |, $/, '').replace(/, ,/, ',');
                 }
                 
-                const pitcherDisplayStats = pitcherLiveKs ? `${pitcherLiveKs} K (${pitcherSummary})` : pitcherSummary;
-
+                const pitcherDisplayStats = hasLiveKs ? `${pitcherLiveKs} K (${pitcherSummary})` : pitcherSummary;
                 const lastPlayText = situ.lastPlay?.text || '---';
                 const networks = comp.broadcasts?.[0]?.names?.join(', ') || 'N/A';
 
@@ -378,11 +397,11 @@
                             <span class="situ-label">Pitcher Stats Today</span>
                             <div class="situ-value" style="color: var(--warning);">${pitcherDisplayStats}</div>
                         </div>
-                        <div style="border-top: 1px solid #333; padding-top: 10px;">
+                        <div style="border-top: 1px solid #333; padding-top: 10px; grid-column: span 2;">
                             <span class="situ-label">Last Play</span>
                             <div class="situ-value" style="font-size: 1.5rem; white-space: normal; color: #ccc;">${lastPlayText}</div>
                         </div>
-                        <div style="border-top: 1px solid #333; padding-top: 10px;">
+                        <div style="border-top: 1px solid #333; padding-top: 10px; grid-column: span 2;">
                             <span class="situ-label">Network</span>
                             <div class="situ-value" style="color: #fff;">${networks}</div>
                         </div>
@@ -391,11 +410,46 @@
             } else if (state === 'pre') {
                 const odds = comp.odds?.[0]?.details || 'TBD';
                 const ou = comp.odds?.[0]?.overUnder || 'TBD';
+                const networks = comp.broadcasts?.[0]?.names?.join(', ') || 'N/A';
+                const stadium = comp.venue?.fullName || 'TBD';
+                
+                const awayStarter = away.probables?.[0];
+                const homeStarter = home.probables?.[0];
+                
+                const getStarterDisplay = (p) => {
+                    if (!p) return 'TBD';
+                    const name = p.athlete?.displayName || 'TBD';
+                    const stats = p.statistics?.find(s => s.name === 'era')?.displayValue;
+                    return stats ? `${name} (${stats} ERA)` : name;
+                };
+
                 html += `
                     <div class="situation-bar" style="grid-template-columns: 1fr 1fr 1fr;">
-                        <div><span class="situ-label">Line</span><div class="situ-value">${odds}</div></div>
-                        <div><span class="situ-label">O/U</span><div class="situ-value">${ou}</div></div>
-                        <div><span class="situ-label">TV</span><div class="situ-value">${comp.broadcasts?.[0]?.names?.[0] || 'N/A'}</div></div>
+                        <div>
+                            <span class="situ-label">Line</span>
+                            <div class="situ-value">${odds}</div>
+                        </div>
+                        <div>
+                            <span class="situ-label">O/U</span>
+                            <div class="situ-value">${ou}</div>
+                        </div>
+                        <div>
+                            <span class="situ-label">Network</span>
+                            <div class="situ-value" style="color: #fff;">${networks}</div>
+                        </div>
+                        
+                        <div style="border-top: 1px solid #333; padding-top: 10px;">
+                            <span class="situ-label">${away.team.abbreviation} STARTER</span>
+                            <div class="situ-value" style="color: var(--warning);">${getStarterDisplay(awayStarter)}</div>
+                        </div>
+                        <div style="border-top: 1px solid #333; padding-top: 10px;">
+                            <span class="situ-label">${home.team.abbreviation} STARTER</span>
+                            <div class="situ-value" style="color: var(--warning);">${getStarterDisplay(homeStarter)}</div>
+                        </div>
+                        <div style="border-top: 1px solid #333; padding-top: 10px;">
+                            <span class="situ-label">Stadium</span>
+                            <div class="situ-value" style="color: #fff;">${stadium}</div>
+                        </div>
                     </div>
                 `;
             } else if (state === 'post') {
@@ -415,10 +469,11 @@
                 const renderLeaderRow = (performer) => {
                     if (!performer) return '';
                     const isK = performer.category === 'K';
+                    const displayVal = (performer.displayValue !== undefined && performer.displayValue !== null) ? performer.displayValue : '0';
                     return `
                         <div class="performer-row">
                             <span class="performer-name"><span class="performer-cat">${isK ? '' : performer.category}</span>${performer.athlete?.shortName || '---'}</span>
-                            <span class="performer-stat">${performer.displayValue}${isK ? ' K' : ''}</span>
+                            <span class="performer-stat">${displayVal}${isK ? ' K' : ''}</span>
                         </div>
                     `;
                 };
@@ -441,7 +496,7 @@
                 `;
             }
 
-            html += renderLinescore(away, home);
+            html += renderLinescore(away, home, state);
             container.innerHTML = html;
         }
 
@@ -466,10 +521,11 @@
             `;
         }
 
-        function renderLinescore(away, home) {
+        function renderLinescore(away, home, state) {
             const awayL = away.linescores || [];
             const homeL = home.linescores || [];
             const innings = Math.max(9, awayL.length);
+            const isStarted = state !== 'pre';
 
             let tableHtml = `
                 <div class="table-container">
@@ -487,16 +543,16 @@
                             <tr>
                                 <td style="text-align:left">${away.team.abbreviation}</td>
                                 ${Array.from({length: innings}, (_, i) => `<td>${awayL[i]?.value ?? ''}</td>`).join('')}
-                                <td class="total-col">${away.score}</td>
-                                <td class="total-col">${getStat(away, 'hits')}</td>
-                                <td class="total-col">${getStat(away, 'errors')}</td>
+                                <td class="total-col">${isStarted ? away.score : ''}</td>
+                                <td class="total-col">${isStarted ? getStat(away, 'hits') : ''}</td>
+                                <td class="total-col">${isStarted ? getStat(away, 'errors') : ''}</td>
                             </tr>
                             <tr>
                                 <td style="text-align:left">${home.team.abbreviation}</td>
                                 ${Array.from({length: innings}, (_, i) => `<td>${homeL[i]?.value ?? ''}</td>`).join('')}
-                                <td class="total-col">${home.score}</td>
-                                <td class="total-col">${getStat(home, 'hits')}</td>
-                                <td class="total-col">${getStat(home, 'errors')}</td>
+                                <td class="total-col">${isStarted ? home.score : ''}</td>
+                                <td class="total-col">${isStarted ? getStat(home, 'hits') : ''}</td>
+                                <td class="total-col">${isStarted ? getStat(home, 'errors') : ''}</td>
                             </tr>
                         </tbody>
                     </table>
