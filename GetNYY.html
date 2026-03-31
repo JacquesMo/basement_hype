@@ -1,161 +1,711 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MLB Scoreboard - District Hype</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLB Ultimate Scoreboard - District Hype</title>
     <style>
+        :root {
+            --bg-color: #2f2f2f;
+            --card-bg: rgba(18, 18, 18, 0.9);
+            --accent: #007bff;
+            --text-dim: #888;
+            --live-red: #ff3b30;
+            --success: #34c759;
+            --warning: #ffcc00;
+            --yankees-blue: #003087;
+        }
+
         body {
-            background: #222;
+            background-color: var(--bg-color);
+            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('YankeesPro Sports Background.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            
             color: #fff;
-            font-family: Arial, sans-serif;
-            text-align: center;
-            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
+
         #scoreboard-title {
-            font-size: 2.8em;
-            font-weight: bold;
-            margin-top: 32px;
-            margin-bottom: 24px;
-            letter-spacing: 2px;
-            text-shadow: 0 4px 24px #000, 0 1px 0 #fff;
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin: 10px 0 20px 0;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            text-shadow: 0 0 20px rgba(0,0,0,0.8);
         }
-        .scoreboard {
+
+        /* Layout Container - 3 Column Setup */
+        .app-layout {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 32px;
-            margin: 0 auto;
+            flex-direction: row;
+            gap: 20px;
             width: 100%;
-            max-width: 900px;
+            max-width: 1800px;
+            align-items: flex-start;
+            justify-content: center;
         }
-        .game-card {
-            background: rgba(90, 146, 163, 0.292);
-            border-radius: 24px;
-            padding: 24px 16px 20px 16px;
-            box-shadow: 0 8px 32px 0 rgba(0,0,0,0.37);
+
+        /* Sidebar Style - Consistent 220px width */
+        .tracker-sidebar {
+            width: 220px;
+            flex-shrink: 0;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            min-width: 0;
-            max-width: 100%;
-            min-height: 120px;
-            height: auto;
-            border: 1.5px solid rgba(255, 255, 255, 0.108);
+            gap: 20px;
         }
-        .status-detail {
-            margin-top: 18px;
-            font-size: 1.2em;
-            font-weight: bold;
+
+        .main-container {
+            flex-grow: 1;
+            max-width: 1200px; 
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            border: 1px solid #333;
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+
+        .game-card { padding: 30px; }
+
+        /* Sidebar/Tracker Card Styles */
+        .sidebar-card {
+            padding: 20px 15px;
             text-align: center;
-            color: #fff;
+            border-top: 4px solid var(--warning);
         }
-        .linescore-table {
-            margin-top: 18px;
+        
+        .sidebar-card.standings-card {
+            border-top: 4px solid var(--success);
+        }
+
+        .player-name-header {
+            font-size: 1.3rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            color: #fff;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .detail-label { color: var(--text-dim); }
+
+        /* Standings Styles */
+        .standings-table {
             width: 100%;
             border-collapse: collapse;
+            font-size: 0.9rem;
         }
-        .linescore-table th, .linescore-table td {
-            border: 1px solid #444;
-            padding: 6px 10px;
-            font-size: 1em;
+        .standings-table th {
+            text-align: left;
+            color: var(--text-dim);
+            padding-bottom: 10px;
+            text-transform: uppercase;
+            font-size: 0.75rem;
         }
-        .linescore-table th {
-            background: #333;
-            color: #FFD700;
+        .standings-table td {
+            padding: 8px 0;
+            font-weight: bold;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
         }
-        .linescore-table td {
-            background: #222;
+        .team-row-name { display: flex; align-items: center; gap: 8px; }
+        .standings-logo { width: 20px; height: 20px; filter: drop-shadow(1px 1px 0px rgba(255,255,255,0.2)); }
+        .is-nyy { color: var(--warning); }
+
+        /* Jazz Stats Grid */
+        .stat-grid {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 5px;
+        }
+
+        .stat-box {
+            background: rgba(255,255,255,0.03);
+            padding: 12px 5px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .stat-big-number {
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--warning);
+            line-height: 1;
+            margin-bottom: 5px;
+            text-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            font-weight: bold;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+        }
+
+        .live-indicator {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--live-red);
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 1rem;
+        }
+
+        .pulse {
+            width: 10px;
+            height: 10px;
+            background: var(--live-red);
+            border-radius: 50%;
+            animation: pulse-animation 1.5s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+        }
+
+        .matchup-header {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .team-box { display: flex; flex-direction: column; align-items: center; }
+        
+        /* 1px hard border as requested */
+        .team-logo { 
+            width: 100px; 
+            height: 100px; 
+            margin-bottom: 10px; 
+            filter: drop-shadow(1px 1px 0px #fff) 
+                    drop-shadow(-1px -1px 0px #fff) 
+                    drop-shadow(1px -1px 0px #fff) 
+                    drop-shadow(-1px 1px 0px #fff);
+        }
+
+        .team-name { font-size: 2.2rem; color: var(--text-dim); font-weight: bold; }
+        .score-large { font-size: 5rem; font-weight: 600; line-height: 1; margin-top: 10px; }
+
+        .game-info-center { text-align: center; }
+        .period-text { font-size: 1.8rem; font-weight: bold; color: var(--warning); display: block; }
+        
+        .outs-dots { 
+            display: flex; 
+            justify-content: center; 
+            gap: 8px; 
+            margin-top: 0px; 
+        }
+        .dot { width: 14px; height: 14px; border-radius: 50%; background: #333; border: 1px solid #444; }
+        .dot.active { background: var(--warning); border-color: var(--warning); box-shadow: 0 0 8px var(--warning); }
+
+        .live-count-display {
+            font-size: 1.4rem;
+            font-weight: 900;
             color: #fff;
+            margin-top: 8px;
+            letter-spacing: 2px;
+            background: rgba(255,255,255,0.05);
+            padding: 2px 10px;
+            border-radius: 4px;
+            display: inline-block;
         }
-        .update-time {
-            margin-top: 12px;
-            font-size: 0.95em;
-            color: #aaa;
+
+        .diamond-container {
+            width: 70px;
+            height: 70px;
+            margin: 30px auto 5px auto; 
+            position: relative;
+            transform: rotate(45deg);
+        }
+        .base {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #333;
+            border: 4px solid #555;
+        }
+        .base.occupied { background: var(--warning); border-color: #1a1a1a; box-shadow: 0 0 5px var(--warning); }
+        .b-1 { top: 0; right: 0; }
+        .b-2 { top: 0; left: 0; }
+        .b-3 { bottom: 0; left: 0; }
+
+        .situation-bar {
+            background: rgba(30, 30, 30, 0.6);
+            padding: 20px;
+            border-radius: 16px;
+            margin-top: 25px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px 25px;
+        }
+
+        .situ-label { color: var(--text-dim); display: block; margin-bottom: 6px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+        .situ-value { font-size: 1.1rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .table-container { margin-top: 30px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { 
+            color: var(--text-dim); 
+            font-size: 1.75rem; 
+            padding: 12px; 
+            border-bottom: 3px solid #333;
+            text-align: center; 
+        }
+        td { 
+            padding: 15px 12px; 
+            font-size: 1.5rem; 
+            font-weight: bold; 
+            border-bottom: 1px solid #2a2a2a;
+            text-align: center; 
+        }
+        .total-col { background: rgba(255,255,255,0.05); color: var(--warning); font-size: 1.8rem; }
+
+        .ticker-wrap {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 50px;
+            font-size: 1.85rem;
+            color: #ccc;
+            white-space: nowrap;
+            overflow: hidden;
+            border: 1px solid #333;
+            margin-top: 10px;
+            backdrop-filter: blur(5px);
+            width: 100%;
+        }
+        .ticker-move {
+            display: inline-block;
+            animation: ticker 60s linear infinite;
+        }
+        @keyframes ticker {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        .ticker-item { margin-right: 60px; font-weight: bold; }
+        .ticker-score { color: var(--warning); }
+
+        .refresh-tag { margin-top: 10px; font-size: 0.8rem; color: #aaa; font-weight: bold; text-shadow: 0 1px 2px #000; }
+
+        @media (max-width: 1300px) {
+            .app-layout { flex-direction: column; align-items: center; }
+            .tracker-sidebar { width: 100%; max-width: 600px; flex-direction: row; }
+            .sidebar-card { flex: 1; }
         }
     </style>
 </head>
 <body>
-    <h1 id="scoreboard-title">MLB Scoreboard - District Hype</h1>
-    <div id="scoreboard" class="scoreboard">
-        Loading...
+
+    <h1 id="scoreboard-title">District Hype</h1>
+    
+    <div class="app-layout">
+        <!-- LEFT: Jazz Tracker -->
+        <div class="tracker-sidebar">
+            <div class="card sidebar-card">
+                <div class="player-name-header">JAZZ CHISHOLM JR.</div>
+                
+                <div class="stat-grid">
+                    <div class="stat-box">
+                        <div class="stat-big-number" id="jazz-hr-count">--</div>
+                        <div class="stat-label">HR</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-big-number" id="jazz-sb-count">--</div>
+                        <div class="stat-label">SB</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 12px; color: var(--text-dim); font-size: 0.65rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">2025 Season Stats</div>
+            </div>
+        </div>
+
+        <!-- CENTER: Main Content -->
+        <div class="main-container">
+            <div id="hero-game" class="card game-card">
+                <div style="padding: 60px; font-size: 1.5rem; text-align:center;">Connecting to MLB data feed...</div>
+            </div>
+
+            <div class="ticker-wrap">
+                <div id="league-ticker" class="ticker-move">
+                    Loading league scores...
+                </div>
+            </div>
+            
+            <div class="refresh-tag" id="refresh-time" style="text-align: center;"></div>
+        </div>
+
+        <!-- RIGHT: Standings -->
+        <div class="tracker-sidebar">
+            <!-- Standings Card -->
+            <div class="card sidebar-card standings-card">
+                <div class="player-name-header">AL EAST</div>
+                <table class="standings-table">
+                    <thead>
+                        <tr>
+                            <th>Team</th>
+                            <th style="text-align:center">W-L</th>
+                            <th style="text-align:right">GB</th>
+                        </tr>
+                    </thead>
+                    <tbody id="standings-body">
+                        <tr><td colspan="3" style="text-align:center; color: #555; padding: 20px;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
+
     <script>
-        const TEAM_ABBREVIATION = 'STL'; // Change to your team
+        const MY_TEAM = 'NYY'; 
+        const JAZZ_ID = '41433'; 
         const API_URL = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard";
-        async function fetchAndFindGame() {
+        const PLAYER_API = `https://site.web.api.espn.com/apis/common/v3/sports/baseball/mlb/athletes/${JAZZ_ID}`;
+        const STANDINGS_URL = "https://statsapi.mlb.com/api/v1/standings?leagueId=103";
+
+        async function updateDashboard() {
             try {
                 const response = await fetch(API_URL);
-                const json_data = await response.json();
-                for (const event of json_data.events) {
-                    const comp = event.competitions[0];
-                    if (comp.competitors.some(c => c.team.abbreviation === TEAM_ABBREVIATION)) {
-                        return comp;
-                    }
+                const data = await response.json();
+                
+                const mainGame = data.events.find(e => 
+                    e.competitions[0].competitors.some(c => c.team.abbreviation === MY_TEAM)
+                );
+
+                renderHero(mainGame);
+                renderTicker(data.events);
+                
+                updateJazzTracker();
+                updateStandings();
+
+                document.getElementById('refresh-time').innerText = `Last Update: ${new Date().toLocaleTimeString()}`;
+            } catch (e) {
+                console.error("Dashboard error:", e);
+            }
+        }
+
+        async function updateJazzTracker() {
+            try {
+                const response = await fetch(PLAYER_API);
+                const data = await response.json();
+                
+                const stats = data.athlete.statsSummary?.statistics;
+                if (stats) {
+                    const hrObj = stats.find(s => s.name === 'homeRuns' || s.abbreviation === 'HR');
+                    const sbObj = stats.find(s => s.name === 'stolenBases' || s.abbreviation === 'SB');
+                    
+                    document.getElementById('jazz-hr-count').innerText = hrObj?.displayValue || "0";
+                    document.getElementById('jazz-sb-count').innerText = sbObj?.displayValue || "0";
                 }
             } catch (e) {
-                return null;
+                console.error("Jazz tracker error:", e);
             }
-            return null;
         }
-        function renderScoreboard(game) {
-            const scoreboard = document.getElementById('scoreboard');
-            if (!game) {
-                scoreboard.innerHTML = `<div class="game-card"><div class="status-detail">No Game Today for ${TEAM_ABBREVIATION}<br>And The Mets Still Suck</div></div>`;
+
+        async function updateStandings() {
+            try {
+                const response = await fetch(STANDINGS_URL);
+                const data = await response.json();
+                
+                if (!data || !data.records) throw new Error("Invalid structure");
+
+                // MLB Stats API uses division ID 201 for AL East
+                const east = data.records.find(r => r.division.id === 201);
+                if (!east || !east.teamRecords) throw new Error("AL East not found");
+                
+                // Map MLB team IDs to standard abbreviations for display
+                const abbrevs = { 147: 'NYY', 110: 'BAL', 111: 'BOS', 139: 'TB', 141: 'TOR' };
+
+                const standings = east.teamRecords.map(entry => {
+                    return {
+                        name: abbrevs[entry.team.id] || entry.team.teamName,
+                        wins: entry.wins, 
+                        losses: entry.losses, 
+                        gb: entry.divisionGamesBack === '-' ? '-' : entry.divisionGamesBack,
+                        logo: `https://www.mlbstatic.com/team-logos/${entry.team.id}.svg`
+                    };
+                });
+
+                let html = '';
+                standings.forEach(t => {
+                    const highlight = t.name === MY_TEAM ? 'is-nyy' : '';
+                    html += `
+                        <tr class="${highlight}">
+                            <td>
+                                <div class="team-row-name">
+                                    <img src="${t.logo}" class="standings-logo" onerror="this.style.display='none'">
+                                    ${t.name}
+                                </div>
+                            </td>
+                            <td style="text-align:center">${t.wins}-${t.losses}</td>
+                            <td style="text-align:right">${t.gb}</td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('standings-body').innerHTML = html;
+            } catch (e) { 
+                console.error("Standings error:", e); 
+                document.getElementById('standings-body').innerHTML = `<tr><td colspan="3" style="text-align:center; color: #777; padding: 15px;">Standings Unavailable</td></tr>`;
+            }
+        }
+
+        function renderHero(event) {
+            const container = document.getElementById('hero-game');
+            if (!event) {
+                container.innerHTML = `<div style="text-align:center; padding:80px;">
+                    <h2 style="font-size: 3rem; margin:0">No ${MY_TEAM} Game Today</h2>
+                    <p style="color:#eee; font-size: 1.5rem; margin-top:20px; text-shadow: 0 2px 4px #000;">The Mets still suck.</p>
+                </div>`;
                 return;
             }
-            const status = game.status?.type || {};
-            const status_name = status.name;
-            const status_detail = status.shortDetail || 'TBD';
-            const competitors = game.competitors || [];
-            const away = competitors.find(c => c.homeAway === 'away') || {};
-            const home = competitors.find(c => c.homeAway === 'home') || {};
-            const away_team = away.team?.abbreviation || 'AWAY';
-            const home_team = home.team?.abbreviation || 'HOME';
-            let html = `<div class="game-card">
-                <div style="font-size:2em;font-weight:bold;">${away_team} @ ${home_team}</div>
-                <div class="status-detail">${status_detail}</div>`;
-            if (status_name === 'STATUS_SCHEDULED') {
-                // Pre-game odds
-                let away_odds = 'N/A', home_odds = 'N/A';
-                const odds = game.odds?.[0] || {};
-                away_odds = odds.details || 'N/A';
-                home_odds = odds.overUnder || 'N/A';
-                html += `<div style="margin-top:18px;font-size:1.1em;">Odds: <span style="color:#FFD700;">${away_team}: ${away_odds}</span> | <span style="color:#FFD700;">${home_team}: ${home_odds}</span></div>`;
-                // Starting pitchers
-                const away_pitcher = away.probables?.[0]?.athlete?.displayName || 'N/A';
-                const home_pitcher = home.probables?.[0]?.athlete?.displayName || 'N/A';
-                html += `<div style="margin-top:12px;font-size:1.1em;">Starters: <span style="color:#26FF00;">${away_team}: ${away_pitcher}</span> | <span style="color:#26FF00;">${home_team}: ${home_pitcher}</span></div>`;
-            } else {
-                // Linescore table
-                html += renderLinescoreTable(away, home);
+
+            const comp = event.competitions[0];
+            const status = comp.status;
+            const state = status.type.state; 
+            const away = comp.competitors.find(c => c.homeAway === 'away');
+            const home = comp.competitors.find(c => c.homeAway === 'home');
+
+            let html = '';
+            if (state === 'in') {
+                html += `<div class="live-indicator"><div class="pulse"></div>LIVE</div>`;
             }
-            html += `<div class="update-time">Last Updated: ${new Date().toLocaleTimeString()}</div></div>`;
-            scoreboard.innerHTML = html;
+
+            html += `
+                <div class="matchup-header">
+                    <div class="team-box">
+                        <img class="team-logo" src="${away.team.logo}" alt="away">
+                        <span class="team-name">${away.team.abbreviation}</span>
+                        <div class="score-large">${state === 'pre' ? '' : away.score}</div>
+                    </div>
+                    <div class="game-info-center">
+                        <span class="period-text">${status.type.shortDetail}</span>
+                        ${state === 'in' ? renderDiamond(comp.situation) : ''}
+                        ${state === 'in' ? renderOuts(comp.situation?.outs) : ''}
+                        ${state === 'in' ? `<div class="live-count-display">${comp.situation?.balls || 0}-${comp.situation?.strikes || 0}</div>` : ''}
+                    </div>
+                    <div class="team-box">
+                        <img class="team-logo" src="${home.team.logo}" alt="home">
+                        <span class="team-name">${home.team.abbreviation}</span>
+                        <div class="score-large">${state === 'pre' ? '' : home.score}</div>
+                    </div>
+                </div>
+            `;
+
+            // Extract common game details
+            const awayStarter = away.probables?.[0];
+            const homeStarter = home.probables?.[0];
+            const getStarterDisplay = (p) => {
+                if (!p) return 'TBD';
+                const name = p.athlete?.displayName || 'TBD';
+                const stats = p.statistics?.find(s => s.name === 'era')?.displayValue;
+                return stats ? `${name} (${stats} ERA)` : name;
+            };
+            const stadium = comp.venue?.fullName || 'TBD';
+            const networks = comp.broadcasts?.[0]?.names?.join(', ') || 'N/A';
+            const odds = comp.odds?.[0]?.details || 'TBD';
+            const ou = comp.odds?.[0]?.overUnder || 'TBD';
+
+            if (state === 'in' && comp.situation) {
+                const situ = comp.situation;
+                const batterStats = situ.batter?.summary || '---';
+                let pitcherSummary = situ.pitcher?.summary || '---';
+                const lastPlayText = situ.lastPlay?.text || '---';
+
+                html += `
+                    <div class="situation-bar" style="grid-template-columns: 1fr 1fr 1fr; text-align: center; gap: 20px 15px;">
+                        <div>
+                            <span class="situ-label">At Bat</span>
+                            <div class="situ-value" style="font-size:1.1rem">
+                                ${situ.batter?.athlete?.displayName || '---'}
+                            </div>
+                        </div>
+                        <div>
+                            <span class="situ-label">Network</span>
+                            <div class="situ-value" style="font-size:1.1rem">${networks}</div>
+                        </div>
+                        <div>
+                            <span class="situ-label">Pitching</span>
+                            <div class="situ-value" style="font-size:1.1rem">
+                                ${situ.pitcher?.athlete?.displayName || '---'}
+                            </div>
+                        </div>
+                        
+                        <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                            <span class="situ-label">Batter Stats</span>
+                            <div class="situ-value" style="color: var(--warning); font-size:1rem">${batterStats}</div>
+                        </div>
+                        <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                            <span class="situ-label">Stadium</span>
+                            <div class="situ-value" style="font-size:1rem">${stadium}</div>
+                        </div>
+                        <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                            <span class="situ-label">Pitcher Stats</span>
+                            <div class="situ-value" style="color: var(--warning); font-size:1rem">${pitcherSummary}</div>
+                        </div>
+
+                        <div style="grid-column: span 3; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                            <span class="situ-label">Last Play</span>
+                            <div class="situ-value" style="font-size: 1rem; white-space: normal; color: #ccc;">${lastPlayText}</div>
+                        </div>
+                    </div>
+                `;
+            } else if (state === 'pre') {
+                html += `
+                    <div class="situation-bar" style="grid-template-columns: 1fr 1fr 1fr; text-align: center; gap: 20px 15px;">
+                        <div>
+                            <span class="situ-label">${away.team.abbreviation} Starter</span>
+                            <div class="situ-value" style="color: var(--warning); font-size:1.1rem">${getStarterDisplay(awayStarter)}</div>
+                        </div>
+                        <div>
+                            <span class="situ-label">Stadium</span>
+                            <div class="situ-value" style="font-size:1.1rem">${stadium}</div>
+                        </div>
+                        <div>
+                            <span class="situ-label">${home.team.abbreviation} Starter</span>
+                            <div class="situ-value" style="color: var(--warning); font-size:1.1rem">${getStarterDisplay(homeStarter)}</div>
+                        </div>
+                        
+                        <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                            <span class="situ-label">Line</span>
+                            <div class="situ-value" style="font-size:1.2rem">${odds}</div>
+                        </div>
+                        <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                            <span class="situ-label">Network</span>
+                            <div class="situ-value" style="font-size:1.2rem">${networks}</div>
+                        </div>
+                        <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                            <span class="situ-label">O/U</span>
+                            <div class="situ-value" style="font-size:1.2rem">${ou}</div>
+                        </div>
+                    </div>
+                `;
+            } else if (state === 'post') {
+                const winner = comp.notes?.find(n => n.type === 'winner')?.text || '';
+                html += `
+                    <div class="situation-bar" style="grid-template-columns: 1fr 1fr 1fr; text-align: center; gap: 20px 15px;">
+                        <div>
+                            <span class="situ-label">Stadium</span>
+                            <div class="situ-value" style="font-size:1.1rem">${stadium}</div>
+                        </div>
+                        <div>
+                            <span class="situ-label">Game Final</span>
+                            <div class="situ-value" style="color: var(--warning); font-size:1.2rem">${winner || 'Game Completed'}</div>
+                        </div>
+                        <div>
+                            <span class="situ-label">Network</span>
+                            <div class="situ-value" style="font-size:1.1rem">${networks}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += renderLinescore(away, home, state);
+            container.innerHTML = html;
         }
-        function renderLinescoreTable(away, home) {
-            const innings = Array.from({length: 9}, (_, i) => (i+1).toString());
-            let away_scores = away.linescores || [];
-            let home_scores = home.linescores || [];
-            let html = `<table class="linescore-table"><thead><tr><th></th>`;
-            for (const inn of innings) html += `<th>${inn}</th>`;
-            html += `<th>R</th><th>H</th><th>E</th></tr></thead><tbody>`;
-            html += `<tr><td>${away.team?.abbreviation || 'AWAY'}</td>`;
-            for (let i=0; i<9; i++) html += `<td>${away_scores[i]?.value ?? ''}</td>`;
-            html += `<td>${away.score ?? ''}</td><td>${away.hits ?? ''}</td><td>${away.errors ?? ''}</td></tr>`;
-            html += `<tr><td>${home.team?.abbreviation || 'HOME'}</td>`;
-            for (let i=0; i<9; i++) html += `<td>${home_scores[i]?.value ?? ''}</td>`;
-            html += `<td>${home.score ?? ''}</td><td>${home.hits ?? ''}</td><td>${home.errors ?? ''}</td></tr>`;
-            html += `</tbody></table>`;
-            return html;
+
+        function renderDiamond(situation) {
+            if (!situation) return '';
+            return `
+                <div class="diamond-container">
+                    <div class="base b-2 ${situation.onSecond ? 'occupied' : ''}"></div>
+                    <div class="base b-1 ${situation.onFirst ? 'occupied' : ''}"></div>
+                    <div class="base b-3 ${situation.onThird ? 'occupied' : ''}"></div>
+                </div>
+            `;
         }
-        async function updateScoreboard() {
-            const game = await fetchAndFindGame();
-            renderScoreboard(game);
+
+        function renderOuts(outs) {
+            if (outs === undefined) return '';
+            return `
+                <div class="outs-dots">
+                    <div class="dot ${outs >= 1 ? 'active' : ''}"></div>
+                    <div class="dot ${outs >= 2 ? 'active' : ''}"></div>
+                </div>
+            `;
         }
-        updateScoreboard();
-        setInterval(updateScoreboard, 5000);
+
+        function renderLinescore(away, home, state) {
+            const awayL = away.linescores || [];
+            const homeL = home.linescores || [];
+            const innings = Math.max(9, awayL.length);
+            const isStarted = state !== 'pre';
+
+            let tableHtml = `
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="text-align:left">TEAM</th>
+                                ${Array.from({length: innings}, (_, i) => `<th>${i+1}</th>`).join('')}
+                                <th class="total-col">R</th>
+                                <th class="total-col">H</th>
+                                <th class="total-col">E</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="text-align:left">${away.team.abbreviation}</td>
+                                ${Array.from({length: innings}, (_, i) => `<td>${awayL[i]?.value ?? ''}</td>`).join('')}
+                                <td class="total-col">${isStarted ? away.score : ''}</td>
+                                <td class="total-col">${isStarted ? getStat(away, 'hits') : ''}</td>
+                                <td class="total-col">${isStarted ? getStat(away, 'errors') : ''}</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align:left">${home.team.abbreviation}</td>
+                                ${Array.from({length: innings}, (_, i) => `<td>${homeL[i]?.value ?? ''}</td>`).join('')}
+                                <td class="total-col">${isStarted ? home.score : ''}</td>
+                                <td class="total-col">${isStarted ? getStat(home, 'hits') : ''}</td>
+                                <td class="total-col">${isStarted ? getStat(home, 'errors') : ''}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>`;
+            return tableHtml;
+        }
+
+        function getStat(team, name) {
+            return team.statistics?.find(s => s.name === name)?.displayValue || 0;
+        }
+
+        function renderTicker(events) {
+            const ticker = document.getElementById('league-ticker');
+            const items = events
+                .filter(e => e.competitions[0].competitors.every(c => c.team.abbreviation !== MY_TEAM))
+                .map(e => {
+                    const c = e.competitions[0];
+                    const a = c.competitors.find(t => t.homeAway === 'away');
+                    const h = c.competitors.find(t => t.homeAway === 'home');
+                    return `<span class="ticker-item">${a.team.abbreviation} <span class="ticker-score">${a.score}</span> @ ${h.team.abbreviation} <span class="ticker-score">${h.score}</span> <span style="font-size: 0.7em; color: #666;">(${c.status.type.shortDetail})</span></span>`;
+                });
+            
+            ticker.innerHTML = items.length > 0 ? items.join('') + items.join('') : "No other games in progress.";
+        }
+
+        updateDashboard();
+        setInterval(updateDashboard, 5000); 
     </script>
 </body>
 </html>
