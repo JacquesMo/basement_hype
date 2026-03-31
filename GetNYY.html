@@ -5,18 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MLB Ultimate Scoreboard - District Hype</title>
     <style>
-        html, body {
-    cursor: none !important;
-}
         :root {
             --bg-color: #2f2f2f;
-            --card-bg: rgba(18, 18, 18, 0.9);
+            --card-bg: rgba(18, 18, 18, 0.95);
             --accent: #007bff;
             --text-dim: #888;
             --live-red: #ff3b30;
             --success: #34c759;
             --warning: #ffcc00;
-            --yankees-blue: #003087;
+            --yankees-blue: #006dda;
         }
 
         * {
@@ -103,7 +100,7 @@
         .sidebar-card {
             padding: 15px;
             text-align: center;
-            border-top: 4px solid var(--warning);
+            border-top: 4px solid var(--yankees-blue);
         }
         
         .sidebar-card.standings-card {
@@ -143,7 +140,7 @@
         }
         .team-row-name { display: flex; align-items: center; gap: 8px; }
         .standings-logo { width: 20px; height: 20px; filter: drop-shadow(1px 1px 0px rgba(255,255,255,0.2)); }
-        .is-nyy { color: var(--warning); }
+        .is-my-team { color: var(--success); } /* updated class name */
 
         /* Jazz Stats Grid */
         .stat-grid {
@@ -166,10 +163,10 @@
         .stat-big-number {
             font-size: 3.5rem;
             font-weight: 900;
-            color: var(--warning);
+            color: var(--yankees-blue);
             line-height: 1;
             margin-bottom: 5px;
-            text-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
+            text-shadow: 0 0 1px rgba(255, 255, 255, 0.416);
         }
 
         .stat-label {
@@ -235,11 +232,11 @@
         .outs-dots { 
             display: flex; 
             justify-content: center; 
-            gap: 6px; 
-            margin-top: 0px; 
+            gap: 10px; 
+            margin-top: -10px; 
         }
-        .dot { width: 14px; height: 14px; border-radius: 50%; background: #333; border: 1px solid #444; }
-        .dot.active { background: var(--warning); border-color: var(--warning); box-shadow: 0 0 8px var(--warning); }
+        .dot { width: 20px; height: 20px; border-radius: 50%; background: #333; border: 1px solid #444; }
+        .dot.active { background: var(--warning); border-color: var(--warning); box-shadow: 0 0 2px var(--warning); }
 
         .live-count-display {
             font-size: 1.6rem;
@@ -262,12 +259,12 @@
         }
         .base {
             position: absolute;
-            width: 20px;
-            height: 20px;
+            width: 30px;
+            height: 30px;
             background: #333;
-            border: 4px solid #555;
+            border: 0px solid #555;
         }
-        .base.occupied { background: var(--warning); border-color: #1a1a1a; box-shadow: 0 0 6px var(--warning); }
+        .base.occupied { background: var(--warning); border-color: #787878; box-shadow: 0 0 2px var(--warning); }
         .b-1 { top: 0; right: 0; }
         .b-2 { top: 0; left: 0; }
         .b-3 { bottom: 0; left: 0; }
@@ -344,13 +341,13 @@
 </head>
 <body>
 
-    <h1 id="scoreboard-title">District Hype</h1>
+    <h1 id="scoreboard-title">Shoot for the Stars...   Land on the Moon</h1>
     
     <div class="app-layout">
         <!-- LEFT: Jazz Tracker -->
         <div class="tracker-sidebar">
             <div class="card sidebar-card">
-                <div class="player-name-header">JAZZ CHISHOLM JR.</div>
+                <div class="player-name-header">JAZZ 50/50 Tracker</div>
                 
                 <div class="stat-grid">
                     <div class="stat-box">
@@ -374,11 +371,11 @@
             </div>
         </div>
 
-        <!-- RIGHT: Standings -->
+        <!-- RIGHT: Dynamic Standings -->
         <div class="tracker-sidebar">
             <!-- Standings Card -->
             <div class="card sidebar-card standings-card">
-                <div class="player-name-header">AL EAST</div>
+                <div class="player-name-header" id="standings-header">STANDINGS</div>
                 <table class="standings-table">
                     <thead>
                         <tr>
@@ -405,11 +402,26 @@
     <div class="refresh-tag" id="refresh-time" style="text-align: center;"></div>
 
     <script>
-        const MY_TEAM = 'NYY'; 
+        const MY_TEAM = 'MIA'; 
         const JAZZ_ID = '665862'; // MLB Stats API ID for Jazz Chisholm Jr.
         const API_URL = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard";
         const PLAYER_API = `https://statsapi.mlb.com/api/v1/people/${JAZZ_ID}/stats?stats=season&group=hitting&season=2026`;
-        const STANDINGS_URL = "https://statsapi.mlb.com/api/v1/standings?leagueId=103";
+        const STANDINGS_URL = "https://statsapi.mlb.com/api/v1/standings?leagueId=103,104"; // Both AL and NL
+
+        // Map MLB Stats API Team IDs to Abbreviations
+        const MLB_TEAMS = {
+            110: 'BAL', 111: 'BOS', 147: 'NYY', 139: 'TB', 141: 'TOR', // AL East
+            145: 'CWS', 114: 'CLE', 116: 'DET', 118: 'KC', 142: 'MIN', // AL Central
+            117: 'HOU', 108: 'LAA', 133: 'OAK', 136: 'SEA', 140: 'TEX', // AL West
+            144: 'ATL', 146: 'MIA', 121: 'NYM', 143: 'PHI', 120: 'WSH', // NL East
+            112: 'CHC', 113: 'CIN', 158: 'MIL', 134: 'PIT', 138: 'STL', // NL Central
+            109: 'ARI', 115: 'COL', 119: 'LAD', 135: 'SD', 137: 'SF'    // NL West
+        };
+
+        const DIVISIONS = {
+            201: 'AL EAST', 202: 'AL CENTRAL', 203: 'AL WEST',
+            204: 'NL EAST', 205: 'NL CENTRAL', 206: 'NL WEST'
+        };
 
         async function updateDashboard() {
             try {
@@ -439,8 +451,8 @@
                 
                 const stats = data.stats?.[0]?.splits?.[0]?.stat;
                 if (stats) {
-                    document.getElementById('jazz-hr-count').innerText = stats.homeRuns !== undefined ? stats.homeRuns : "-";
-                    document.getElementById('jazz-sb-count').innerText = stats.stolenBases !== undefined ? stats.stolenBases : "-";
+                    document.getElementById('jazz-hr-count').innerText = stats.homeRuns !== undefined ? stats.homeRuns : "0";
+                    document.getElementById('jazz-sb-count').innerText = stats.stolenBases !== undefined ? stats.stolenBases : "0";
                 }
             } catch (e) {
                 console.error("Jazz tracker error:", e);
@@ -454,16 +466,24 @@
                 
                 if (!data || !data.records) throw new Error("Invalid structure");
 
-                // MLB Stats API uses division ID 201 for AL East
-                const east = data.records.find(r => r.division.id === 201);
-                if (!east || !east.teamRecords) throw new Error("AL East not found");
-                
-                // Map MLB team IDs to standard abbreviations for display
-                const abbrevs = { 147: 'NYY', 110: 'BAL', 111: 'BOS', 139: 'TB', 141: 'TOR' };
+                // Find which division MY_TEAM belongs to
+                let myDivision = null;
+                for (const record of data.records) {
+                    if (record.teamRecords.some(tr => MLB_TEAMS[tr.team.id] === MY_TEAM)) {
+                        myDivision = record;
+                        break;
+                    }
+                }
 
-                const standings = east.teamRecords.map(entry => {
+                if (!myDivision || !myDivision.teamRecords) throw new Error("Division not found for " + MY_TEAM);
+                
+                // Update the Header Dynamically
+                const divHeader = DIVISIONS[myDivision.division.id] || "STANDINGS";
+                document.getElementById('standings-header').innerText = divHeader;
+
+                const standings = myDivision.teamRecords.map(entry => {
                     return {
-                        name: abbrevs[entry.team.id] || entry.team.teamName,
+                        name: MLB_TEAMS[entry.team.id] || entry.team.name,
                         wins: entry.wins, 
                         losses: entry.losses, 
                         gb: entry.divisionGamesBack === '-' ? '-' : entry.divisionGamesBack,
@@ -473,7 +493,7 @@
 
                 let html = '';
                 standings.forEach(t => {
-                    const highlight = t.name === MY_TEAM ? 'is-nyy' : '';
+                    const highlight = t.name === MY_TEAM ? 'is-my-team' : '';
                     html += `
                         <tr class="${highlight}">
                             <td>
