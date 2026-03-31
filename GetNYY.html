@@ -66,7 +66,7 @@
 
         .main-container {
             flex-grow: 1;
-            max-width: 1200px; 
+            max-width: 1000px; 
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -95,7 +95,7 @@
         }
 
         .player-name-header {
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: 900;
             letter-spacing: 1px;
             margin-bottom: 15px;
@@ -171,12 +171,12 @@
             color: var(--live-red);
             font-weight: bold;
             text-transform: uppercase;
-            font-size: 1rem;
+            font-size: 1.2rem;
         }
 
         .pulse {
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             background: var(--live-red);
             border-radius: 50%;
             animation: pulse-animation 1.5s infinite;
@@ -184,7 +184,7 @@
 
         @keyframes pulse-animation {
             0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
+            70% { transform: scale(1); box-shadow: 0 0 0 12px rgba(255, 59, 48, 0); }
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
         }
 
@@ -199,8 +199,8 @@
         
         /* 1px hard border as requested */
         .team-logo { 
-            width: 100px; 
-            height: 100px; 
+            width: 120px; 
+            height: 120px; 
             margin-bottom: 10px; 
             filter: drop-shadow(1px 1px 0px #fff) 
                     drop-shadow(-1px -1px 0px #fff) 
@@ -208,11 +208,11 @@
                     drop-shadow(-1px 1px 0px #fff);
         }
 
-        .team-name { font-size: 2.2rem; color: var(--text-dim); font-weight: bold; }
-        .score-large { font-size: 5rem; font-weight: 600; line-height: 1; margin-top: 10px; }
+        .team-name { font-size: 2.8rem; color: var(--text-dim); font-weight: bold; }
+        .score-large { font-size: 6.5rem; font-weight: 600; line-height: 1; margin-top: 10px; }
 
         .game-info-center { text-align: center; }
-        .period-text { font-size: 1.8rem; font-weight: bold; color: var(--warning); display: block; }
+        .period-text { font-size: 2.2rem; font-weight: bold; color: var(--warning); display: block; }
         
         .outs-dots { 
             display: flex; 
@@ -220,83 +220,86 @@
             gap: 8px; 
             margin-top: 0px; 
         }
-        .dot { width: 14px; height: 14px; border-radius: 50%; background: #333; border: 1px solid #444; }
+        .dot { width: 16px; height: 16px; border-radius: 50%; background: #333; border: 1px solid #444; }
         .dot.active { background: var(--warning); border-color: var(--warning); box-shadow: 0 0 8px var(--warning); }
 
         .live-count-display {
-            font-size: 1.4rem;
+            font-size: 1.8rem;
             font-weight: 900;
             color: #fff;
             margin-top: 8px;
             letter-spacing: 2px;
             background: rgba(255,255,255,0.05);
-            padding: 2px 10px;
-            border-radius: 4px;
+            padding: 4px 15px;
+            border-radius: 6px;
             display: inline-block;
         }
 
         .diamond-container {
-            width: 70px;
-            height: 70px;
-            margin: 30px auto 5px auto; 
+            width: 80px;
+            height: 80px;
+            margin: 35px auto 10px auto; 
             position: relative;
             transform: rotate(45deg);
         }
         .base {
             position: absolute;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             background: #333;
             border: 4px solid #555;
         }
-        .base.occupied { background: var(--warning); border-color: #1a1a1a; box-shadow: 0 0 5px var(--warning); }
+        .base.occupied { background: var(--warning); border-color: #1a1a1a; box-shadow: 0 0 6px var(--warning); }
         .b-1 { top: 0; right: 0; }
         .b-2 { top: 0; left: 0; }
         .b-3 { bottom: 0; left: 0; }
 
         .situation-bar {
             background: rgba(30, 30, 30, 0.6);
-            padding: 20px;
+            padding: 25px;
             border-radius: 16px;
-            margin-top: 25px;
+            margin-top: 30px;
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px 25px;
         }
 
-        .situ-label { color: var(--text-dim); display: block; margin-bottom: 6px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
-        .situ-value { font-size: 1.1rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .situ-label { color: var(--text-dim); display: block; margin-bottom: 8px; font-size: 1rem; text-transform: uppercase; letter-spacing: 1.5px; }
+        .situ-value { font-size: 1.4rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        .table-container { margin-top: 30px; overflow-x: auto; }
+        .table-container { margin-top: 35px; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; }
         th { 
             color: var(--text-dim); 
-            font-size: 1.75rem; 
-            padding: 12px; 
+            font-size: 2rem; 
+            padding: 15px; 
             border-bottom: 3px solid #333;
             text-align: center; 
         }
         td { 
-            padding: 15px 12px; 
-            font-size: 1.5rem; 
+            padding: 18px 15px; 
+            font-size: 1.8rem; 
             font-weight: bold; 
             border-bottom: 1px solid #2a2a2a;
             text-align: center; 
         }
-        .total-col { background: rgba(255,255,255,0.05); color: var(--warning); font-size: 1.8rem; }
+        .total-col { background: rgba(255,255,255,0.05); color: var(--warning); font-size: 2.2rem; }
 
+        /* Ticker now spans wide at the bottom */
         .ticker-wrap {
             background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
+            padding: 15px 30px;
             border-radius: 50px;
             font-size: 1.85rem;
             color: #ccc;
             white-space: nowrap;
             overflow: hidden;
             border: 1px solid #333;
-            margin-top: 10px;
+            margin-top: 20px;
             backdrop-filter: blur(5px);
             width: 100%;
+            max-width: 1800px;
+            box-sizing: border-box;
         }
         .ticker-move {
             display: inline-block;
@@ -348,14 +351,6 @@
             <div id="hero-game" class="card game-card">
                 <div style="padding: 60px; font-size: 1.5rem; text-align:center;">Connecting to MLB data feed...</div>
             </div>
-
-            <div class="ticker-wrap">
-                <div id="league-ticker" class="ticker-move">
-                    Loading league scores...
-                </div>
-            </div>
-            
-            <div class="refresh-tag" id="refresh-time" style="text-align: center;"></div>
         </div>
 
         <!-- RIGHT: Standings -->
@@ -379,8 +374,17 @@
         </div>
     </div>
 
+    <!-- Ticker placed outside layout to span bottom and center -->
+    <div class="ticker-wrap">
+        <div id="league-ticker" class="ticker-move">
+            Loading league scores...
+        </div>
+    </div>
+    
+    <div class="refresh-tag" id="refresh-time" style="text-align: center;"></div>
+
     <script>
-        const MY_TEAM = 'BAL'; 
+        const MY_TEAM = 'NYY'; 
         const JAZZ_ID = '41433'; 
         const API_URL = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard";
         const PLAYER_API = `https://site.web.api.espn.com/apis/common/v3/sports/baseball/mlb/athletes/${JAZZ_ID}`;
@@ -476,8 +480,8 @@
             const container = document.getElementById('hero-game');
             if (!event) {
                 container.innerHTML = `<div style="text-align:center; padding:80px;">
-                    <h2 style="font-size: 3rem; margin:0">No ${MY_TEAM} Game Today</h2>
-                    <p style="color:#eee; font-size: 1.5rem; margin-top:20px; text-shadow: 0 2px 4px #000;">The Mets still suck.</p>
+                    <h2 style="font-size: 4rem; margin:0">No ${MY_TEAM} Game Today</h2>
+                    <p style="color:#eee; font-size: 2rem; margin-top:20px; text-shadow: 0 2px 4px #000;">The Mets still suck.</p>
                 </div>`;
                 return;
             }
@@ -538,37 +542,37 @@
                     <div class="situation-bar" style="grid-template-columns: 1fr 1fr 1fr; text-align: center; gap: 20px 15px;">
                         <div>
                             <span class="situ-label">At Bat</span>
-                            <div class="situ-value" style="font-size:1.1rem">
+                            <div class="situ-value" style="font-size:1.4rem">
                                 ${situ.batter?.athlete?.displayName || '---'}
                             </div>
                         </div>
                         <div>
                             <span class="situ-label">Network</span>
-                            <div class="situ-value" style="font-size:1.1rem">${networks}</div>
+                            <div class="situ-value" style="font-size:1.4rem">${networks}</div>
                         </div>
                         <div>
                             <span class="situ-label">Pitching</span>
-                            <div class="situ-value" style="font-size:1.1rem">
+                            <div class="situ-value" style="font-size:1.4rem">
                                 ${situ.pitcher?.athlete?.displayName || '---'}
                             </div>
                         </div>
                         
                         <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
                             <span class="situ-label">Batter Stats</span>
-                            <div class="situ-value" style="color: var(--warning); font-size:1rem">${batterStats}</div>
+                            <div class="situ-value" style="color: var(--warning); font-size:1.3rem">${batterStats}</div>
                         </div>
                         <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
                             <span class="situ-label">Stadium</span>
-                            <div class="situ-value" style="font-size:1rem">${stadium}</div>
+                            <div class="situ-value" style="font-size:1.3rem">${stadium}</div>
                         </div>
                         <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
                             <span class="situ-label">Pitcher Stats</span>
-                            <div class="situ-value" style="color: var(--warning); font-size:1rem">${pitcherSummary}</div>
+                            <div class="situ-value" style="color: var(--warning); font-size:1.3rem">${pitcherSummary}</div>
                         </div>
 
                         <div style="grid-column: span 3; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
                             <span class="situ-label">Last Play</span>
-                            <div class="situ-value" style="font-size: 1rem; white-space: normal; color: #ccc;">${lastPlayText}</div>
+                            <div class="situ-value" style="font-size: 1.2rem; white-space: normal; color: #ccc;">${lastPlayText}</div>
                         </div>
                     </div>
                 `;
@@ -577,28 +581,28 @@
                     <div class="situation-bar" style="grid-template-columns: 1fr 1fr 1fr; text-align: center; gap: 20px 15px;">
                         <div>
                             <span class="situ-label">${away.team.abbreviation} Starter</span>
-                            <div class="situ-value" style="color: var(--warning); font-size:1.1rem">${getStarterDisplay(awayStarter)}</div>
+                            <div class="situ-value" style="color: var(--warning); font-size:1.4rem">${getStarterDisplay(awayStarter)}</div>
                         </div>
                         <div>
                             <span class="situ-label">Stadium</span>
-                            <div class="situ-value" style="font-size:1.1rem">${stadium}</div>
+                            <div class="situ-value" style="font-size:1.4rem">${stadium}</div>
                         </div>
                         <div>
                             <span class="situ-label">${home.team.abbreviation} Starter</span>
-                            <div class="situ-value" style="color: var(--warning); font-size:1.1rem">${getStarterDisplay(homeStarter)}</div>
+                            <div class="situ-value" style="color: var(--warning); font-size:1.4rem">${getStarterDisplay(homeStarter)}</div>
                         </div>
                         
                         <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
                             <span class="situ-label">Line</span>
-                            <div class="situ-value" style="font-size:1.2rem">${odds}</div>
+                            <div class="situ-value" style="font-size:1.5rem">${odds}</div>
                         </div>
                         <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
                             <span class="situ-label">Network</span>
-                            <div class="situ-value" style="font-size:1.2rem">${networks}</div>
+                            <div class="situ-value" style="font-size:1.5rem">${networks}</div>
                         </div>
                         <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
                             <span class="situ-label">O/U</span>
-                            <div class="situ-value" style="font-size:1.2rem">${ou}</div>
+                            <div class="situ-value" style="font-size:1.5rem">${ou}</div>
                         </div>
                     </div>
                 `;
@@ -608,15 +612,15 @@
                     <div class="situation-bar" style="grid-template-columns: 1fr 1fr 1fr; text-align: center; gap: 20px 15px;">
                         <div>
                             <span class="situ-label">Stadium</span>
-                            <div class="situ-value" style="font-size:1.1rem">${stadium}</div>
+                            <div class="situ-value" style="font-size:1.4rem">${stadium}</div>
                         </div>
                         <div>
                             <span class="situ-label">Game Final</span>
-                            <div class="situ-value" style="color: var(--warning); font-size:1.2rem">${winner || 'Game Completed'}</div>
+                            <div class="situ-value" style="color: var(--warning); font-size:1.6rem">${winner || 'Game Completed'}</div>
                         </div>
                         <div>
                             <span class="situ-label">Network</span>
-                            <div class="situ-value" style="font-size:1.1rem">${networks}</div>
+                            <div class="situ-value" style="font-size:1.4rem">${networks}</div>
                         </div>
                     </div>
                 `;
