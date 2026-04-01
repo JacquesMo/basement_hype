@@ -62,7 +62,7 @@
             width: 100%;
             max-width: 1800px;
             flex-grow: 1; /* Take up available space */
-            align-items: center; /* Changed from stretch to center to prevent side cards from stretching */
+            align-items: center; 
             justify-content: center;
         }
 
@@ -140,7 +140,7 @@
         }
         .team-row-name { display: flex; align-items: center; gap: 8px; }
         .standings-logo { width: 20px; height: 20px; filter: drop-shadow(1px 1px 0px rgba(255,255,255,0.2)); }
-        .is-my-team { color: var(--success); } /* updated class name */
+        .is-my-team { color: var(--success); } 
 
         /* Jazz Stats Grid */
         .stat-grid {
@@ -204,11 +204,13 @@
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
         }
 
+        /* Matchup Header and Situation Bar Grid Alignment */
         .matchup-header {
             display: grid;
-            grid-template-columns: 1fr auto 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             align-items: center;
             margin-bottom: 10px;
+            width: 100%;
         }
 
         .team-box { display: flex; flex-direction: column; align-items: center; }
@@ -269,14 +271,17 @@
         .b-2 { top: 0; left: 0; }
         .b-3 { bottom: 0; left: 0; }
 
+        /* Unified styling to perfectly align columns with matchup-header above */
         .situation-bar {
             background: rgba(30, 30, 30, 0.6);
-            padding: 15px 20px;
+            padding: 15px 0; /* Zero L/R padding ensures exact column width matching */
             border-radius: 16px;
             margin-top: 15px;
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px 20px;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px 0; /* Zero L/R gap ensures exact column width matching */
+            width: 100%;
+            text-align: center;
         }
 
         .situ-label { color: var(--text-dim); display: block; margin-bottom: 4px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1.5px; }
@@ -402,7 +407,7 @@
     <div class="refresh-tag" id="refresh-time" style="text-align: center;"></div>
 
     <script>
-        const MY_TEAM = 'MIA'; 
+        const MY_TEAM = 'NYY'; 
         const JAZZ_ID = '665862'; // MLB Stats API ID for Jazz Chisholm Jr.
         const API_URL = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard";
         const PLAYER_API = `https://statsapi.mlb.com/api/v1/people/${JAZZ_ID}/stats?stats=season&group=hitting&season=2026`;
@@ -576,12 +581,33 @@
                 let pitcherSummary = situ.pitcher?.summary || '---';
                 const lastPlayText = situ.lastPlay?.text || '---';
 
+                // Determine who is batting using a robust check
+                let isHomeBatting = false;
+                if (situ.team && situ.team.id) {
+                    isHomeBatting = String(situ.team.id) === String(home.team.id);
+                } else {
+                    const inningText = status.type.shortDetail || '';
+                    isHomeBatting = inningText.toLowerCase().includes('bot') || inningText.toLowerCase().includes('end');
+                }
+
+                const leftPlayerLabel = isHomeBatting ? 'Pitching' : 'At Bat';
+                const leftPlayerName = isHomeBatting ? (situ.pitcher?.athlete?.displayName || '---') : (situ.batter?.athlete?.displayName || '---');
+                const leftTeam = away.team.abbreviation;
+                const leftStatsLabel = isHomeBatting ? 'Pitcher Stats' : 'Batter Stats';
+                const leftStats = isHomeBatting ? pitcherSummary : batterStats;
+
+                const rightPlayerLabel = isHomeBatting ? 'At Bat' : 'Pitching';
+                const rightPlayerName = isHomeBatting ? (situ.batter?.athlete?.displayName || '---') : (situ.pitcher?.athlete?.displayName || '---');
+                const rightTeam = home.team.abbreviation;
+                const rightStatsLabel = isHomeBatting ? 'Batter Stats' : 'Pitcher Stats';
+                const rightStats = isHomeBatting ? batterStats : pitcherSummary;
+
                 html += `
-                    <div class="situation-bar" style="grid-template-columns: 1fr 1fr 1fr; text-align: center; gap: 15px 15px;">
+                    <div class="situation-bar">
                         <div>
-                            <span class="situ-label">At Bat</span>
+                            <span class="situ-label">${leftPlayerLabel}</span>
                             <div class="situ-value" style="font-size:1.4rem">
-                                ${situ.batter?.athlete?.displayName || '---'}
+                                ${leftPlayerName} <span style="font-size: 0.9rem; color: var(--text-dim);">(${leftTeam})</span>
                             </div>
                         </div>
                         <div>
@@ -589,23 +615,23 @@
                             <div class="situ-value" style="font-size:1.4rem">${networks}</div>
                         </div>
                         <div>
-                            <span class="situ-label">Pitching</span>
+                            <span class="situ-label">${rightPlayerLabel}</span>
                             <div class="situ-value" style="font-size:1.4rem">
-                                ${situ.pitcher?.athlete?.displayName || '---'}
+                                ${rightPlayerName} <span style="font-size: 0.9rem; color: var(--text-dim);">(${rightTeam})</span>
                             </div>
                         </div>
                         
                         <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
-                            <span class="situ-label">Batter Stats</span>
-                            <div class="situ-value" style="color: var(--warning); font-size:1.3rem">${batterStats}</div>
+                            <span class="situ-label">${leftStatsLabel}</span>
+                            <div class="situ-value" style="color: var(--warning); font-size:1.3rem">${leftStats}</div>
                         </div>
                         <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
                             <span class="situ-label">Stadium</span>
                             <div class="situ-value" style="font-size:1.3rem">${stadium}</div>
                         </div>
                         <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
-                            <span class="situ-label">Pitcher Stats</span>
-                            <div class="situ-value" style="color: var(--warning); font-size:1.3rem">${pitcherSummary}</div>
+                            <span class="situ-label">${rightStatsLabel}</span>
+                            <div class="situ-value" style="color: var(--warning); font-size:1.3rem">${rightStats}</div>
                         </div>
 
                         <div style="grid-column: span 3; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
@@ -616,7 +642,7 @@
                 `;
             } else if (state === 'pre') {
                 html += `
-                    <div class="situation-bar" style="grid-template-columns: 1fr 1fr 1fr; text-align: center; gap: 15px 15px;">
+                    <div class="situation-bar">
                         <div>
                             <span class="situ-label">${away.team.abbreviation} Starter</span>
                             <div class="situ-value" style="color: var(--warning); font-size:1.4rem">${getStarterDisplay(awayStarter)}</div>
@@ -647,7 +673,7 @@
             } else if (state === 'post') {
                 const winner = comp.notes?.find(n => n.type === 'winner')?.text || '';
                 html += `
-                    <div class="situation-bar" style="grid-template-columns: 1fr 1fr 1fr; text-align: center; gap: 15px 15px;">
+                    <div class="situation-bar">
                         <div>
                             <span class="situ-label">Stadium</span>
                             <div class="situ-value" style="font-size:1.4rem">${stadium}</div>
