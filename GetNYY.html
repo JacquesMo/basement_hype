@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MLB Ultimate Scoreboard - District Hype</title>
     <style>
-        html, body {
-            cursor: none !important;
-        }
         :root {
             --bg-color: #2f2f2f;
             --card-bg: rgba(18, 18, 18, 0.95);
@@ -442,9 +439,6 @@
 
                 renderHero(mainGame);
                 renderTicker(data.events);
-                
-                updateJazzTracker();
-                updateStandings();
 
                 document.getElementById('refresh-time').innerText = `Last Update: ${new Date().toLocaleTimeString()}`;
             } catch (e) {
@@ -775,7 +769,12 @@
             ticker.innerHTML = items.length > 0 ? items.join('') + items.join('') : "No other games in progress.";
         }
 
+        // Initialize all components once
+        updateJazzTracker();
+        updateStandings();
         updateDashboard();
+        
+        // Only update the live scoreboard and ticker every 5 seconds
         setInterval(updateDashboard, 5000); 
     </script>
 </body>
